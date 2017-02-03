@@ -12,6 +12,7 @@
 *.o
 *.a
 mkmf.log
+vendor/
 
 # rspec failure tracking
 .rspec_status

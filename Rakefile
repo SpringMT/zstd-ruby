@@ -7,8 +7,9 @@ require "rake/extensiontask"
 
 task :build => :compile
 
-Rake::ExtensionTask.new("zstd_ruby") do |ext|
-  ext.lib_dir = "lib/zstd_ruby"
+Rake::ExtensionTask.new("zstdruby") do |ext|
+  ext.lib_dir = "lib/zstd-ruby"
+  ext.ext_dir = "ext/zstdruby"
 end
 
 task :default => [:clobber, :compile, :spec]

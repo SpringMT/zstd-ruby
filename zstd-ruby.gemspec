@@ -1,17 +1,17 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'zstd_ruby/version'
+require 'zstd-ruby/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "zstd_ruby"
-  spec.version       = ZstdRuby::VERSION
+  spec.name          = "zstd-ruby"
+  spec.version       = Zstd::VERSION
   spec.authors       = ["SpringMT"]
   spec.email         = ["today.is.sky.blue.sky@gmail.com"]
 
-  spec.summary       = %q{TODO: Write a short summary, because Rubygems requires one.}
-  spec.description   = %q{TODO: Write a longer description or delete this line.}
-  spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.summary       = %q{Write a short summary, because Rubygems requires one.}
+  spec.description   = %q{ Write a longer description or delete this line.}
+  spec.homepage      = "https://github.com/SpringMT/zstd-ruby"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
   spec.bindir        = "exe"
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
-  spec.extensions    = ["ext/zstd_ruby/extconf.rb"]
+  spec.extensions    = ["ext/zstdruby/extconf.rb"]
 
   spec.add_development_dependency "bundler", "~> 1.14"
   spec.add_development_dependency "rake", "~> 10.0"

@@ -1,5 +1,5 @@
 require "bundler/setup"
-require "zstd_ruby"
+require "zstd-ruby"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
