@@ -13,3 +13,6 @@ Rake::ExtensionTask.new("zstdruby") do |ext|
 end
 
 task :default => [:clobber, :compile, :spec]
+
+#task :sync
+

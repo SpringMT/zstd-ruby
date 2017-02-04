@@ -1,13 +1,22 @@
-# Zstd
+[![Build Status](https://travis-ci.org/SpringMT/zstd-ruby.svg?branch=master)](https://travis-ci.org/SpringMT/zstd-ruby)
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/zstd_ruby`. To experiment with that code, run `bin/console` for an interactive prompt.
+# zstd-ruby
+
+Ruby binding for zstd(Zstandard - Fast real-time compression algorithm)
+
+See https://github.com/facebook/zstd
+
+Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/zstd-ruby`. To experiment with that code, run `bin/console` for an interactive prompt.
+
+## Zstd version
+v1.1.2 (https://github.com/facebook/zstd/releases/tag/v1.1.2)
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'zstd_ruby'
+gem 'zstd-ruby'
 ```
 
 And then execute:
@@ -16,11 +25,10 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install zstd_ruby
+    $ gem install zstd-ruby
 
 ## Usage
 
-TODO: Write usage instructions here
 
 ## Development
 
