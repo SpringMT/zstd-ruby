@@ -6,6 +6,12 @@ RSpec.describe Zstd do
     expect(Zstd::VERSION).not_to be nil
   end
 
+  describe 'zstd_version' do
+    it 'should work' do
+      expect(Zstd.zstd_version).to eq(10102)
+    end
+  end
+
   describe 'compress' do
     it 'should work' do
       compressed = Zstd.compress('abc')

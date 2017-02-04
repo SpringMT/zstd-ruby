@@ -1,6 +1,11 @@
 #include "zstdruby.h"
 #include "./libzstd/zstd.h"
 
+static VALUE zstdVersion(VALUE self)
+{
+  unsigned version = ZSTD_versionNumber();
+  return INT2NUM(version);
+}
 
 static VALUE compress(int argc, VALUE *argv, VALUE self)
 {
@@ -27,7 +32,7 @@ static VALUE compress(int argc, VALUE *argv, VALUE self)
   char* output_data = RSTRING_PTR(output);
 
   size_t compressed_size = ZSTD_compress((void*)output_data, max_compressed_size,
-                                         (const void*)input_data, input_size, 1);
+                                         (const void*)input_data, input_size, compression_level_value);
 
   if (ZSTD_isError(compressed_size)) {
     rb_raise(rb_eRuntimeError, "%s: %s", "compress failed", ZSTD_getErrorName(compressed_size));
@@ -106,6 +111,7 @@ void
 Init_zstdruby(void)
 {
   rb_mZstd = rb_define_module("Zstd");
+  rb_define_module_function(rb_mZstd, "zstd_version", zstdVersion, 0);
   rb_define_module_function(rb_mZstd, "compress", compress, -1);
   rb_define_module_function(rb_mZstd, "decompress", decompress, 1);
 }

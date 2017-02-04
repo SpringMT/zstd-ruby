@@ -6,8 +6,6 @@ Ruby binding for zstd(Zstandard - Fast real-time compression algorithm)
 
 See https://github.com/facebook/zstd
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/zstd-ruby`. To experiment with that code, run `bin/console` for an interactive prompt.
-
 ## Zstd version
 v1.1.2 (https://github.com/facebook/zstd/releases/tag/v1.1.2)
 
@@ -29,6 +27,22 @@ Or install it yourself as:
 
 ## Usage
 
+```
+require 'zstd-ruby'
+```
+
+### compression
+
+```
+Zstd.compress(data)
+```
+
+
+### decompression
+
+```
+Zstd.decompress(compressed_data)
+```
 
 ## Development
 

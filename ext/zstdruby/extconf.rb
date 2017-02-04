@@ -1,6 +1,6 @@
 require "mkmf"
 
-$CFLAGS = '-I. -O3 -std=c99 -pedantic'
+$CFLAGS = '-I. -O3 -std=c99'
 
 Dir.chdir File.expand_path('..', __FILE__) do
     $srcs = Dir['**/*.c']
