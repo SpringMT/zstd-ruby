@@ -1,6 +1,6 @@
 require 'benchmark/ips'
 
-$LOAD_PATH.unshift "../lib"
+$LOAD_PATH.unshift '../lib'
 
 require 'json'
 require 'snappy'

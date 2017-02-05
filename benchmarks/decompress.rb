@@ -1,10 +1,13 @@
 require 'benchmark/ips'
 
+$LOAD_PATH.unshift '../lib'
+
 require 'json'
 require 'snappy'
 require 'zlib'
 require 'xz'
 require 'lz4-ruby'
+require 'zstd-ruby'
 
 sample_file_name = ARGV[0]
 
@@ -30,5 +33,4 @@ Benchmark.ips do |x|
   x.report("zstd") do
     Zstd.decompress IO.read("./results/#{sample_file_name}.zstd")
   end
-
 end

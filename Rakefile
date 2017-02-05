@@ -1,5 +1,6 @@
 require "bundler/gem_tasks"
 require "rspec/core/rake_task"
+require 'fileutils'
 
 RSpec::Core::RakeTask.new(:spec)
 
@@ -14,5 +15,8 @@ end
 
 task :default => [:clobber, :compile, :spec]
 
-#task :sync
-
+desc 'Sync zstd libs dirs to ext/zstdruby/libzstd'
+task :zstd_update do
+  FileUtils.rm_r('ext/zstdruby/libzstd')
+  FileUtils.cp_r('zstd/lib', 'ext/zstdruby/libzstd')
+end
