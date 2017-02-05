@@ -32,7 +32,7 @@ static VALUE compress(int argc, VALUE *argv, VALUE self)
   char* output_data = RSTRING_PTR(output);
 
   size_t compressed_size = ZSTD_compress((void*)output_data, max_compressed_size,
-                                         (const void*)input_data, input_size, compression_level_value);
+                                         (const void*)input_data, input_size, compression_level);
 
   if (ZSTD_isError(compressed_size)) {
     rb_raise(rb_eRuntimeError, "%s: %s", "compress failed", ZSTD_getErrorName(compressed_size));
