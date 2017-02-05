@@ -1,11 +1,12 @@
+
 # sample data
 FROM http://www.cl.ecei.tohoku.ac.jp/~matsuda/LRE_corpus/
 
 # usage
 
-
 ```
-bundle exec ruby compress.rb city
+bundle exec ruby compress.rb city.json
+bundle exec ruby decompress.rb city.json
 ```
 
 
@@ -52,4 +53,23 @@ total 2712
 -rw-r--r--   1 makoto  staff   166K  2  5 16:08 city.json.xz
 -rw-r--r--   1 makoto  staff   238K  2  5 16:08 city.json.zstd
 ```
+
+## Decompression
+### Performance
+
+```
+Warming up --------------------------------------
+              snappy    59.000  i/100ms
+                gzip    19.000  i/100ms
+                  xz     5.000  i/100ms
+                 lz4    51.000  i/100ms
+                zstd    31.000  i/100ms
+Calculating -------------------------------------
+              snappy    583.211  (± 9.1%) i/s -      2.891k in   5.002226s
+                gzip    195.468  (±10.7%) i/s -    969.000  in   5.028082s
+                  xz     53.501  (± 7.5%) i/s -    270.000  in   5.083982s
+                 lz4    511.275  (± 9.4%) i/s -      2.550k in   5.036539s
+                zstd    302.455  (±16.5%) i/s -      1.488k in   5.070354s
+```
+
 
