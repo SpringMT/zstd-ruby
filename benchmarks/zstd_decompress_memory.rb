@@ -1,6 +1,9 @@
 require 'benchmark/ips'
+
+$LOAD_PATH.unshift '../lib'
+
 require 'json'
-require 'zstd'
+require 'zstd-ruby'
 require 'objspace'
 
 p "#{ObjectSpace.memsize_of_all/1000} #{ObjectSpace.count_objects} #{`ps -o rss= -p #{Process.pid}`.to_i}"
@@ -12,7 +15,7 @@ json_string = json_data.to_json
 i = 0
 while true do
   Zstd.decompress IO.read("./results/#{sample_file_name}.zstd")
-  if ((i % 10000) == 0 )
+  if ((i % 1000) == 0 )
      puts "count:#{i}\truby_memory:#{ObjectSpace.memsize_of_all/1000}\tobject_count:#{ObjectSpace.count_objects}\trss:#{`ps -o rss= -p #{Process.pid}`.to_i}"
   end
   i += 1
