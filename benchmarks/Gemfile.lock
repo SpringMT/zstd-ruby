@@ -1,0 +1,23 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    benchmark-ips (2.7.2)
+    ffi (1.9.17)
+    io-like (0.3.0)
+    lz4-ruby (0.3.3)
+    ruby-xz (0.2.3)
+      ffi (~> 1.9)
+      io-like (~> 0.3)
+    snappy (0.0.15)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  benchmark-ips
+  lz4-ruby
+  ruby-xz
+  snappy
+
+BUNDLED WITH
+   1.14.3
