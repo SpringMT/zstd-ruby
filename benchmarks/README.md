@@ -1,11 +1,12 @@
+
 # sample data
 FROM http://www.cl.ecei.tohoku.ac.jp/~matsuda/LRE_corpus/
 
 # usage
 
-
 ```
-bundle exec ruby compress.rb city
+bundle exec ruby compress.rb city.json
+bundle exec ruby decompress.rb city.json
 ```
 
 
