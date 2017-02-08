@@ -20,4 +20,4 @@ $INCFLAGS << " -I$(srcdir) -I$(srcdir)/libzstd"
 # add folder, where compiler can search source files
 $VPATH << "$(srcdir)"
 
-create_makefile("zstdruby")
+create_makefile("zstd-ruby/zstdruby")
