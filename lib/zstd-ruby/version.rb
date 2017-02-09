@@ -1,3 +1,3 @@
 module Zstd
-  VERSION = "0.1.2"
+  VERSION = "1.1.3.0"
 end
