@@ -29,21 +29,22 @@ Or install it yourself as:
 
 ## Usage
 
-```
+```ruby
 require 'zstd-ruby'
 ```
 
 ### compression
 
-```
-Zstd.compress(data)
+```ruby
+compressed_data = Zstd.compress(data)
+compressed_data = Zstd.compress(data, complession_level) # default compression_level is 0
 ```
 
 
 ### decompression
 
-```
-Zstd.decompress(compressed_data)
+```ruby
+data = Zstd.decompress(compressed_data)
 ```
 
 ## Development
