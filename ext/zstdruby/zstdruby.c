@@ -21,8 +21,7 @@ static VALUE compress(int argc, VALUE *argv, VALUE self)
   if (NIL_P(compression_level_value)) {
     compression_level = 0; // The default. See ZSTD_CLEVEL_DEFAULT in zstd_compress.c
   } else {
-    Check_Type(compression_level_value, RUBY_T_FIXNUM);
-    compression_level = FIX2INT(compression_level_value);
+    compression_level = NUM2INT(compression_level_value);
   }
 
   // do compress
