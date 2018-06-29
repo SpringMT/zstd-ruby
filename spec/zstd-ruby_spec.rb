@@ -8,7 +8,7 @@ RSpec.describe Zstd do
 
   describe 'zstd_version' do
     it 'should work' do
-      expect(Zstd.zstd_version).to eq(10304)
+      expect(Zstd.zstd_version).to eq(10305)
     end
   end
 
