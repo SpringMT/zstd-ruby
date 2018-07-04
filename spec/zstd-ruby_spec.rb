@@ -39,6 +39,28 @@ RSpec.describe Zstd do
       decompressed = Zstd.decompress(compressed)
       expect(decompressed).to eq('')
     end
+
+    it 'performs streaming decompression' do
+      input = 200_000.times.map { (67 + rand(10)).chr }.join
+      compressed = Zstd.compress(input)
+      enumerator = compressed.each_char.each_slice(4_000).lazy.map(&:join)
+      expect(enumerator.to_a.join).to eq(compressed)
+      decompressed = ''
+      Zstd.decompress_streaming(enumerator) do |buffer|
+        decompressed << buffer
+      end
+      expect(decompressed).to eq(input)
+    end
+
+    it 'performs streaming decompression on two concatenated frames' do
+      compressed = Zstd.compress('abc')
+      decompressed = ''
+      enumerator = [compressed, compressed].to_enum
+      Zstd.decompress_streaming(enumerator) do |buffer|
+        decompressed << buffer
+      end
+      expect(decompressed).to eq('abcabc')
+    end
   end
 end
 

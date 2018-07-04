@@ -42,6 +42,67 @@ static VALUE compress(int argc, VALUE *argv, VALUE self)
   return output;
 }
 
+VALUE rescue_nil(VALUE obj1)
+{
+  /* handle exception */
+  return Qnil;
+}
+
+VALUE enumerator_next(VALUE enumerator)
+{
+  return rb_funcall(enumerator, rb_intern("next"), 0);
+}
+
+VALUE next(VALUE enumerator)
+{
+  return rb_rescue2(enumerator_next, enumerator, rescue_nil, Qnil, rb_eStopIteration, 0);
+}
+
+static VALUE decompress_streaming(VALUE self, VALUE enumerator)
+{
+  const size_t outputBufferSize = 4096;
+
+  ZSTD_DStream* const dstream = ZSTD_createDStream();
+  if (dstream == NULL) {
+    rb_raise(rb_eRuntimeError, "%s", "ZSTD_createDStream failed");
+  }
+
+  size_t initResult = ZSTD_initDStream(dstream);
+  if (ZSTD_isError(initResult)) {
+    ZSTD_freeDStream(dstream);
+    rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_initDStream failed", ZSTD_getErrorName(initResult));
+  }
+
+  VALUE output_buffer = rb_str_new(NULL, ZSTD_DStreamOutSize());
+  ZSTD_outBuffer output = { RSTRING_PTR(output_buffer), ZSTD_DStreamOutSize(), 0 };
+
+  VALUE buffer = Qnil;
+
+  while (Qnil != (buffer = next(enumerator))) {
+    Check_Type(buffer, T_STRING);
+    const char* input_data = RSTRING_PTR(buffer);
+    size_t input_size = RSTRING_LEN(buffer);
+    ZSTD_inBuffer input = { input_data, input_size, 0 };
+    size_t readHint = ZSTD_decompressStream(dstream, &output, &input);
+    if (ZSTD_isError(readHint)) {
+      ZSTD_freeDStream(dstream);
+      rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_decompressStream failed", ZSTD_getErrorName(readHint));
+    }
+    if (output.pos > 0) {
+      rb_str_resize(output_buffer, output.pos);
+      rb_yield(output_buffer);
+      output_buffer = rb_str_new(NULL, ZSTD_DStreamOutSize());
+      output.pos = 0;
+      output.dst = RSTRING_PTR(output_buffer);
+    }
+    if (readHint == 0) {
+      break;
+    }
+  }
+  ZSTD_freeDStream(dstream);
+  return Qnil;
+}
+
 static VALUE decompress_buffered(const char* input_data, size_t input_size)
 {
   const size_t outputBufferSize = 4096;
@@ -113,4 +174,5 @@ Init_zstdruby(void)
   rb_define_module_function(rb_mZstd, "zstd_version", zstdVersion, 0);
   rb_define_module_function(rb_mZstd, "compress", compress, -1);
   rb_define_module_function(rb_mZstd, "decompress", decompress, 1);
+  rb_define_module_function(rb_mZstd, "decompress_streaming", decompress_streaming, 1);
 }
