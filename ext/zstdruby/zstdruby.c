@@ -58,11 +58,8 @@ VALUE next(VALUE enumerator)
   return rb_rescue2(enumerator_next, enumerator, rescue_nil, Qnil, rb_eStopIteration, 0);
 }
 
-static VALUE decompress_streaming(VALUE self, VALUE enumerator)
-{
-  const size_t outputBufferSize = 4096;
-
-  ZSTD_DStream* const dstream = ZSTD_createDStream();
+static ZSTD_DStream* create_stream() {
+  ZSTD_DStream* dstream = ZSTD_createDStream();
   if (dstream == NULL) {
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createDStream failed");
   }
@@ -72,7 +69,13 @@ static VALUE decompress_streaming(VALUE self, VALUE enumerator)
     ZSTD_freeDStream(dstream);
     rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_initDStream failed", ZSTD_getErrorName(initResult));
   }
+  return dstream;
+}
 
+static VALUE decompress_streaming(VALUE self, VALUE enumerator)
+{
+  const size_t outputBufferSize = 4096;
+  ZSTD_DStream* dstream = create_stream();
   VALUE output_buffer = rb_str_new(NULL, ZSTD_DStreamOutSize());
   ZSTD_outBuffer output = { RSTRING_PTR(output_buffer), ZSTD_DStreamOutSize(), 0 };
 
@@ -96,6 +99,8 @@ static VALUE decompress_streaming(VALUE self, VALUE enumerator)
       output.dst = RSTRING_PTR(output_buffer);
     }
     if (readHint == 0) {
+      // Handle concatenated streams
+      decompress_streaming(self, enumerator);
       break;
     }
   }

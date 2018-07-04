@@ -55,7 +55,7 @@ RSpec.describe Zstd do
     it 'performs streaming decompression on two concatenated frames' do
       compressed = Zstd.compress('abc')
       decompressed = ''
-      enumerator = [compressed, compressed].to_enum
+      enumerator = [compressed, compressed].join.each_char.each_slice(12).lazy.map(&:join)
       Zstd.decompress_streaming(enumerator) do |buffer|
         decompressed << buffer
       end
