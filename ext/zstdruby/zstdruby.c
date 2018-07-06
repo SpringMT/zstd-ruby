@@ -86,22 +86,23 @@ static VALUE decompress_streaming(VALUE self, VALUE enumerator)
     const char* input_data = RSTRING_PTR(buffer);
     size_t input_size = RSTRING_LEN(buffer);
     ZSTD_inBuffer input = { input_data, input_size, 0 };
-    size_t readHint = ZSTD_decompressStream(dstream, &output, &input);
-    if (ZSTD_isError(readHint)) {
-      ZSTD_freeDStream(dstream);
-      rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_decompressStream failed", ZSTD_getErrorName(readHint));
-    }
-    if (output.pos > 0) {
-      rb_str_resize(output_buffer, output.pos);
-      rb_yield(output_buffer);
-      output_buffer = rb_str_new(NULL, ZSTD_DStreamOutSize());
-      output.pos = 0;
-      output.dst = RSTRING_PTR(output_buffer);
-    }
-    if (readHint == 0) {
-      // Handle concatenated streams
-      decompress_streaming(self, enumerator);
-      break;
+    while (input.pos < input.size) {
+      size_t readHint = ZSTD_decompressStream(dstream, &output, &input);
+      if (ZSTD_isError(readHint)) {
+        ZSTD_freeDStream(dstream);
+        rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_decompressStream failed", ZSTD_getErrorName(readHint));
+      }
+      if (output.pos > 0) {
+        rb_str_resize(output_buffer, output.pos);
+        rb_yield(output_buffer);
+        output_buffer = rb_str_new(NULL, ZSTD_DStreamOutSize());
+        output.pos = 0;
+        output.dst = RSTRING_PTR(output_buffer);
+      }
+      if (readHint == 0) {
+        // Handle concatenated streams
+        decompress_streaming(self, enumerator);
+      }
     }
   }
   ZSTD_freeDStream(dstream);
