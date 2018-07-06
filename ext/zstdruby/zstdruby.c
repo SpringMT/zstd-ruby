@@ -86,8 +86,9 @@ static VALUE decompress_streaming(VALUE self, VALUE enumerator)
     const char* input_data = RSTRING_PTR(buffer);
     size_t input_size = RSTRING_LEN(buffer);
     ZSTD_inBuffer input = { input_data, input_size, 0 };
+    size_t readHint;
     while (input.pos < input.size) {
-      size_t readHint = ZSTD_decompressStream(dstream, &output, &input);
+      readHint = ZSTD_decompressStream(dstream, &output, &input);
       if (ZSTD_isError(readHint)) {
         ZSTD_freeDStream(dstream);
         rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_decompressStream failed", ZSTD_getErrorName(readHint));
@@ -99,10 +100,11 @@ static VALUE decompress_streaming(VALUE self, VALUE enumerator)
         output.pos = 0;
         output.dst = RSTRING_PTR(output_buffer);
       }
-      if (readHint == 0) {
-        // Handle concatenated streams
-        decompress_streaming(self, enumerator);
-      }
+    }
+    if (readHint == 0) {
+      // Handle concatenated streams
+      rb_p(LONG2FIX(-1));
+      decompress_streaming(self, enumerator);
     }
   }
   ZSTD_freeDStream(dstream);
