@@ -103,7 +103,6 @@ static VALUE decompress_streaming(VALUE self, VALUE enumerator)
     }
     if (readHint == 0) {
       // Handle concatenated streams
-      rb_p(LONG2FIX(-1));
       decompress_streaming(self, enumerator);
     }
   }
