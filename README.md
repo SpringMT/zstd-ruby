@@ -1,3 +1,4 @@
+[![Gem Version](https://badge.fury.io/rb/zstd-ruby.svg)](https://badge.fury.io/rb/zstd-ruby)
 [![Build Status](https://travis-ci.org/SpringMT/zstd-ruby.svg?branch=master)](https://travis-ci.org/SpringMT/zstd-ruby)
 
 # zstd-ruby
