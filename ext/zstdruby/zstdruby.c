@@ -79,15 +79,23 @@ static VALUE decompress_buffered(const char* input_data, size_t input_size)
   return output_string;
 }
 
-static VALUE decompress(VALUE self, VALUE input)
+static VALUE decompress(int argc, VALUE *argv, VALUE self)
 {
+  VALUE input = argv[0];
+  VALUE continuous_decompression;
+  if (argc == 1) {
+    continuous_decompression = RUBY_T_FALSE;
+  } else if (argc == 2) {
+    continuous_decompression = argv[1];
+  }
+
   Check_Type(input, T_STRING);
   const char* input_data = RSTRING_PTR(input);
   size_t input_size = RSTRING_LEN(input);
 
   uint64_t uncompressed_size = ZSTD_getDecompressedSize(input_data, input_size);
 
-  if (uncompressed_size == 0) {
+  if (RTEST(continuous_decompression) || uncompressed_size == 0) {
     return decompress_buffered(input_data, input_size);
   }
 
@@ -112,5 +120,5 @@ Init_zstdruby(void)
   rb_mZstd = rb_define_module("Zstd");
   rb_define_module_function(rb_mZstd, "zstd_version", zstdVersion, 0);
   rb_define_module_function(rb_mZstd, "compress", compress, -1);
-  rb_define_module_function(rb_mZstd, "decompress", decompress, 1);
+  rb_define_module_function(rb_mZstd, "decompress", decompress, -1);
 }
