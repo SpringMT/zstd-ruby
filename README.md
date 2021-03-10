@@ -1,5 +1,5 @@
 [![Gem Version](https://badge.fury.io/rb/zstd-ruby.svg)](https://badge.fury.io/rb/zstd-ruby)
-[![Build Status](https://travis-ci.org/SpringMT/zstd-ruby.svg?branch=master)](https://travis-ci.org/SpringMT/zstd-ruby)
+![Build Status](https://github.com/SpringMT/zstd-ruby/actions/workflows/ruby.yml/badge.svg?branch=master)
 
 # zstd-ruby
 
@@ -10,7 +10,7 @@ See https://github.com/facebook/zstd
 Fork from https://github.com/jarredholman/ruby-zstd.
 
 ## Zstd version
-v1.4.5 (https://github.com/facebook/zstd/tree/v1.4.5)
+v1.4.9 (https://github.com/facebook/zstd/tree/v1.4.9)
 
 ## Installation
 
