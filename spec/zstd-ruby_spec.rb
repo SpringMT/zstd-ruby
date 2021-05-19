@@ -33,6 +33,12 @@ RSpec.describe Zstd do
       expect(decompressed).to eq('abc')
     end
 
+    it 'should work with two continous compressed buffers' do
+      compressed = Zstd.compress('abc') * 2
+      decompressed = Zstd.decompress(compressed, true)
+      expect(decompressed).to eq('abcabc')
+    end
+
     it 'should work for empty strings' do
       compressed = Zstd.compress('')
       expect(compressed.bytesize).to eq(9)
