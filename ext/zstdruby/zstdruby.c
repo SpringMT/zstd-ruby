@@ -13,7 +13,7 @@ static VALUE compress(int argc, VALUE *argv, VALUE self)
   VALUE compression_level_value;
   rb_scan_args(argc, argv, "11", &input_value, &compression_level_value);
 
-  Check_Type(input_value, RUBY_T_STRING);
+  StringValue(input_value);
   const char* input_data = RSTRING_PTR(input_value);
   size_t input_size = RSTRING_LEN(input_value);
 
@@ -81,7 +81,7 @@ static VALUE decompress_buffered(const char* input_data, size_t input_size)
 
 static VALUE decompress(VALUE self, VALUE input)
 {
-  Check_Type(input, T_STRING);
+  StringValue(input);
   const char* input_data = RSTRING_PTR(input);
   size_t input_size = RSTRING_LEN(input);
 
