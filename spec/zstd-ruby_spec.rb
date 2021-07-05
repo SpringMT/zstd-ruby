@@ -24,6 +24,23 @@ RSpec.describe Zstd do
       expect(compressed).to be_a(String)
       expect(compressed).to_not eq('abc')
     end
+
+    it 'should raise exception with unsupported object' do
+      expect { Zstd.compress(Object.new) }.to raise_error(TypeError)
+    end
+
+    class DummyForCompress
+      def to_str
+        'abc'
+      end
+    end
+
+    it 'should convert object implicitly' do
+      compressed = Zstd.compress(DummyForCompress.new)
+      expect(compressed).to be_a(String)
+      decompressed = Zstd.decompress(compressed)
+      expect(decompressed).to eq('abc')
+    end
   end
 
   describe 'decompress' do
@@ -38,6 +55,20 @@ RSpec.describe Zstd do
       expect(compressed.bytesize).to eq(9)
       decompressed = Zstd.decompress(compressed)
       expect(decompressed).to eq('')
+    end
+
+    it 'should raise exception with unsupported object' do
+      expect { Zstd.decompress(Object.new) }.to raise_error(TypeError)
+    end
+
+    class DummyForDecompress
+      def to_str
+        Zstd.compress('abc')
+      end
+    end
+
+    it 'should convert object implicitly' do
+      expect(Zstd.decompress(DummyForDecompress.new)).to eq('abc')
     end
   end
 end
