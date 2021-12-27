@@ -1,6 +1,7 @@
 require "mkmf"
 
 $CFLAGS = '-I. -O3 -std=c99'
+$CPPFLAGS += " -fdeclspec" if CONFIG['CXX'] =~ /clang/
 
 Dir.chdir File.expand_path('..', __FILE__) do
     $srcs = Dir['**/*.c']
