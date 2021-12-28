@@ -14,9 +14,9 @@ RSpec.describe Zstd do
 
   describe 'compress' do
     it 'should work' do
-      compressed = Zstd.compress('abc')
+      compressed = Zstd.compress('abc' * 10)
       expect(compressed).to be_a(String)
-      expect(compressed).to_not eq('abc')
+      expect(compressed).to_not eq('abc' * 10)
     end
 
     it 'should support compression levels' do
