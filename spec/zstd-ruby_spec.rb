@@ -1,5 +1,6 @@
 require "spec_helper"
 require 'zstd-ruby'
+require 'securerandom'
 
 RSpec.describe Zstd do
   it "has a version number" do
@@ -45,9 +46,11 @@ RSpec.describe Zstd do
 
   describe 'decompress' do
     it 'should work' do
-      compressed = Zstd.compress('abc')
+      # bounbdary is 128 bytes
+      str = SecureRandom.hex(150)
+      compressed = Zstd.compress(str)
       decompressed = Zstd.decompress(compressed)
-      expect(decompressed).to eq('abc')
+      expect(decompressed).to eq(str)
     end
 
     it 'should work for empty strings' do
