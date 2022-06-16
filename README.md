@@ -48,6 +48,31 @@ compressed_data = Zstd.compress(data, complession_level) # default compression_l
 data = Zstd.decompress(compressed_data)
 ```
 
+## JRuby
+This gem does not support JRuby.
+
+Please consider using https://github.com/luben/zstd-jni.
+
+Sample code is below.
+
+```
+require 'java'
+require_relative './zstd-jni-1.5.2-3.jar'
+
+str = "testtest"
+compressed = com.github.luben.zstd.Zstd.compress(str.to_java_bytes)
+puts com.github.luben.zstd.Zstd.decompress(compressed, str.length)
+```
+
+```
+% ls
+test.rb              zstd-jni-1.5.2-3.jar
+% ruby -v
+jruby 9.3.2.0 (2.6.8) 2021-12-01 0b8223f905 OpenJDK 64-Bit Server VM 11.0.12+0 on 11.0.12+0 +jit [darwin-x86_64]
+% ruby test.rb
+testtest
+```
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
