@@ -1,0 +1,5 @@
+#if !defined(STREAMING_COMPRESS_H)
+#define STREAMING_COMPRESS_H
+
+
+#endif // STREAMING_COMPRESS_H

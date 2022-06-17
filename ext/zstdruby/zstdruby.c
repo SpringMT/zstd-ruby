@@ -1,5 +1,6 @@
-#include "zstdruby.h"
-#include "./libzstd/zstd.h"
+#include <common.h>
+
+extern VALUE rb_mZstd;
 
 static VALUE zstdVersion(VALUE self)
 {
@@ -104,12 +105,9 @@ static VALUE decompress(VALUE self, VALUE input)
   return output;
 }
 
-VALUE rb_mZstd;
-
 void
-Init_zstdruby(void)
+zstd_ruby_init(void)
 {
-  rb_mZstd = rb_define_module("Zstd");
   rb_define_module_function(rb_mZstd, "zstd_version", zstdVersion, 0);
   rb_define_module_function(rb_mZstd, "compress", compress, -1);
   rb_define_module_function(rb_mZstd, "decompress", decompress, 1);
