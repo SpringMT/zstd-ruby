@@ -2,14 +2,44 @@ require "spec_helper"
 require 'zstd-ruby'
 
 RSpec.describe Zstd::StreamingCompress do
-  describe 'new' do
+  describe '<<' do
     it 'shoud work' do
       stream = Zstd::StreamingCompress.new
-      stream << "test" << "test"
+      stream << "abc" << "def"
       res = stream.finish
-      expect(Zstd.decompress(res)).to eq('testtest')
+      expect(Zstd.decompress(res)).to eq('abcdef')
     end
   end
 
+  describe '<< + flush' do
+    it 'shoud work' do
+      stream = Zstd::StreamingCompress.new
+      stream << "abc" << "def"
+      res = stream.flush
+      stream << "ghi"
+      res << stream.finish
+      expect(Zstd.decompress(res)).to eq('abcdefghi')
+    end
+  end
+
+  describe 'compress + flush' do
+    it 'shoud work' do
+      stream = Zstd::StreamingCompress.new
+      res = stream.compress("abc")
+      res << stream.flush
+      res << stream.compress("def")
+       res << stream.finish
+       expect(Zstd.decompress(res)).to eq('abcdef')
+    end
+  end
+
+  describe 'compression level' do
+    it 'shoud work' do
+      stream = Zstd::StreamingCompress.new(5)
+      stream << "abc" << "def"
+      res = stream.finish
+      expect(Zstd.decompress(res)).to eq('abcdef')
+    end
+  end
 end
 
