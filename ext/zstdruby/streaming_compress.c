@@ -8,7 +8,6 @@ struct streaming_compress_t {
   size_t pos;
 };
 
-
 static void
 streaming_compress_mark(void *p)
 {
@@ -32,7 +31,6 @@ streaming_compress_free(void *p)
 static size_t
 streaming_compress_memsize(const void *p)
 {
-    /* n.b. this does not track memory managed via zalloc/zfree callbacks */
     return sizeof(struct streaming_compress_t);
 }
 
@@ -151,7 +149,6 @@ rb_streaming_compress_addstr(VALUE obj, VALUE src)
   return obj;
 }
 
-
 static VALUE
 rb_streaming_compress_flush(VALUE obj)
 {
@@ -160,7 +157,6 @@ rb_streaming_compress_flush(VALUE obj)
   VALUE result = no_compress(sc, ZSTD_e_flush);
   return result;
 }
-
 
 static VALUE
 rb_streaming_compress_finish(VALUE obj)
