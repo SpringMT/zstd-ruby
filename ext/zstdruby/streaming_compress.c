@@ -5,7 +5,6 @@ struct streaming_compress_t {
   ZSTD_CCtx* ctx;
   VALUE buf;
   size_t buf_size;
-  size_t pos;
 };
 
 static void
