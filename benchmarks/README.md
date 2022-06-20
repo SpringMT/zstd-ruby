@@ -35,10 +35,13 @@ Calculating -------------------------------------
 ```
 #### Data Size
 ##### before
+```
 % ls -alh samples/city.json
 -rw-r--r--  1 springmt  staff   1.7M 12 27 15:42 samples/city.json
+```
 ##### after
- % ls -alh results
+```
+% ls -alh results
 total 2784
 drwxr-xr-x   7 springmt  staff   224B 12 27 15:42 .
 drwxr-xr-x  11 springmt  staff   352B 12 27 15:42 ..
@@ -47,6 +50,7 @@ drwxr-xr-x  11 springmt  staff   352B 12 27 15:42 ..
 -rw-r--r--   1 springmt  staff   358K  6 20 10:06 city.json.snappy
 -rw-r--r--   1 springmt  staff   166K  6 20 10:06 city.json.xz
 -rw-r--r--   1 springmt  staff   225K  6 20 10:06 city.json.zstd
+```
 ### Decompression
 ```
 % bundle exec ruby decompress.rb city.json
@@ -66,7 +70,6 @@ Calculating -------------------------------------
 
 ## 2017/02/16(https://github.com/SpringMT/zstd-ruby/commit/0ca4b99e4ffaf18b39b2cdb102b5b5bc31a18071)
 ### Compression
-
 ```
 % bundle exec ruby compress.rb city.json
 Warming up --------------------------------------
