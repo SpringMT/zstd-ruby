@@ -39,8 +39,8 @@ RSpec.describe Zstd::StreamingCompress do
       res = stream.compress("abc")
       res << stream.flush
       res << stream.compress("def")
-       res << stream.finish
-       expect(Zstd.decompress(res)).to eq('abcdef')
+      res << stream.finish
+      expect(Zstd.decompress(res)).to eq('abcdef')
     end
   end
 
