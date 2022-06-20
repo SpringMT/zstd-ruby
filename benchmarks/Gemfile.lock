@@ -1,14 +1,10 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    benchmark-ips (2.7.2)
-    ffi (1.9.25)
-    io-like (0.3.0)
+    benchmark-ips (2.10.0)
     lz4-ruby (0.3.3)
-    ruby-xz (0.2.3)
-      ffi (~> 1.9)
-      io-like (~> 0.3)
-    snappy (0.0.15)
+    ruby-xz (1.0.3)
+    snappy (0.3.0)
 
 PLATFORMS
   ruby
@@ -20,4 +16,4 @@ DEPENDENCIES
   snappy
 
 BUNDLED WITH
-   1.16.1
+   2.1.4
