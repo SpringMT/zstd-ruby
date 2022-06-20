@@ -34,19 +34,47 @@ Or install it yourself as:
 require 'zstd-ruby'
 ```
 
-### compression
+### Simple Compression
 
 ```ruby
 compressed_data = Zstd.compress(data)
 compressed_data = Zstd.compress(data, complession_level) # default compression_level is 0
 ```
 
+### Streaming Compression
+```
+stream = Zstd::StreamingCompress.new
+stream << "abc" << "def"
+res = stream.flush
+stream << "ghi"
+res << stream.finish
+```
 
-### decompression
+or
+
+```
+stream = Zstd::StreamingCompress.new
+res = stream.compress("abc")
+res << stream.flush
+res << stream.compress("def")
+res << stream.finish
+```
+
+### Simple Decompression
 
 ```ruby
 data = Zstd.decompress(compressed_data)
 ```
+
+### Streaming Decompression
+```
+cstr = "" # Compressed data
+stream = Zstd::StreamingDecompress.new
+result = ''
+result << stream.decompress(cstr[0, 10])
+result << stream.decompress(cstr[10..-1])
+```
+
 
 ## JRuby
 This gem does not support JRuby.
