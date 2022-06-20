@@ -11,6 +11,17 @@ RSpec.describe Zstd::StreamingCompress do
     end
   end
 
+  describe '<< + GC.compat' do
+    it 'shoud work' do
+      stream = Zstd::StreamingCompress.new
+      stream << "abc" << "def"
+      GC.compact
+      stream << "ghi"
+      res = stream.finish
+      expect(Zstd.decompress(res)).to eq('abcdefghi')
+    end
+  end
+
   describe '<< + flush' do
     it 'shoud work' do
       stream = Zstd::StreamingCompress.new

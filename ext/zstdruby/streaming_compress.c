@@ -5,14 +5,13 @@ struct streaming_compress_t {
   ZSTD_CCtx* ctx;
   VALUE buf;
   size_t buf_size;
-  size_t pos;
 };
 
 static void
 streaming_compress_mark(void *p)
 {
   struct streaming_compress_t *sc = p;
-  rb_gc_mark((VALUE)sc->ctx);
+  // rb_gc_mark((VALUE)sc->ctx);
   rb_gc_mark(sc->buf);
   rb_gc_mark(sc->buf_size);
 }
