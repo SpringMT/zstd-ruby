@@ -11,9 +11,61 @@ bundle exec ruby decompress.rb city.json
 
 
 # Result
-## Compression
+## 2022/06/20
+```
+MacBook Pro (13-inch, 2020, Four Thunderbolt 3 ports)
+2 GHz クアッドコアIntel Core i5
+16 GB 3733 MHz LPDDR4X
+```
+### Compression
+```
+% bundle exec ruby compress.rb city.json
+Warming up --------------------------------------
+              snappy    40.000  i/100ms
+                gzip     3.000  i/100ms
+                  xz     1.000  i/100ms
+                 lz4    29.000  i/100ms
+                zstd    18.000  i/100ms
+Calculating -------------------------------------
+              snappy    402.381  (± 8.2%) i/s -      2.040k in   5.112554s
+                gzip     32.348  (±12.4%) i/s -    162.000  in   5.109498s
+                  xz      1.777  (± 0.0%) i/s -      9.000  in   5.116790s
+                 lz4    291.582  (±12.3%) i/s -      1.450k in   5.076016s
+                zstd    174.981  (±12.6%) i/s -    864.000  in   5.032567s
+```
+#### Data Size
+##### before
+% ls -alh samples/city.json
+-rw-r--r--  1 springmt  staff   1.7M 12 27 15:42 samples/city.json
+##### after
+ % ls -alh results
+total 2784
+drwxr-xr-x   7 springmt  staff   224B 12 27 15:42 .
+drwxr-xr-x  11 springmt  staff   352B 12 27 15:42 ..
+-rw-r--r--   1 springmt  staff   219K  6 20 10:06 city.json.gzip
+-rw-r--r--   1 springmt  staff   365K  6 20 10:06 city.json.lz4
+-rw-r--r--   1 springmt  staff   358K  6 20 10:06 city.json.snappy
+-rw-r--r--   1 springmt  staff   166K  6 20 10:06 city.json.xz
+-rw-r--r--   1 springmt  staff   225K  6 20 10:06 city.json.zstd
+### Decompression
+```
+% bundle exec ruby decompress.rb city.json
+Warming up --------------------------------------
+              snappy    85.000  i/100ms
+                gzip    20.000  i/100ms
+                  xz     4.000  i/100ms
+                 lz4    70.000  i/100ms
+                zstd    54.000  i/100ms
+Calculating -------------------------------------
+              snappy    862.639  (± 2.6%) i/s -      4.335k in   5.028667s
+                gzip    207.820  (± 6.7%) i/s -      1.040k in   5.026189s
+                  xz     41.649  (± 4.8%) i/s -    208.000  in   5.004779s
+                 lz4    680.900  (± 3.5%) i/s -      3.430k in   5.043917s
+                zstd    541.291  (± 7.4%) i/s -      2.700k in   5.037102s
+```
 
-### Performance
+## 2017/02/16(https://github.com/SpringMT/zstd-ruby/commit/0ca4b99e4ffaf18b39b2cdb102b5b5bc31a18071)
+### Compression
 
 ```
 % bundle exec ruby compress.rb city.json
@@ -31,18 +83,15 @@ Calculating -------------------------------------
                 zstd    195.722  (±14.3%) i/s -    952.000  in   5.027488s
 ```
 
-
-
-### Data Size
-
-#### before
+#### Data Size
+##### before
 
 ```
 % ls -alh samples/city.json
 -rw-r--r--@ 1 makoto  staff   1.7M  2  5 16:07 samples/city.json
 ```
 
-#### after
+##### after
 
 ```
 % ls -alh results
@@ -54,8 +103,7 @@ total 2712
 -rw-r--r--   1 makoto  staff   238K  2  5 16:08 city.json.zstd
 ```
 
-## Decompression
-### Performance
+### Decompression
 
 ```
 Warming up --------------------------------------
@@ -72,4 +120,9 @@ Calculating -------------------------------------
                 zstd    302.455  (±16.5%) i/s -      1.488k in   5.070354s
 ```
 
-
+## YYYY/MM/DD
+### Compression
+#### Data Size
+##### before
+##### after
+### Decompression
