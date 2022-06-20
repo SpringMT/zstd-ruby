@@ -12,6 +12,7 @@ bundle exec ruby decompress.rb city.json
 
 # Result
 ## 2022/06/20
+https://github.com/SpringMT/zstd-ruby/commit/77a9e704747ad24761bcc8194884270f983538c1
 ```
 MacBook Pro (13-inch, 2020, Four Thunderbolt 3 ports)
 2 GHz クアッドコアIntel Core i5
@@ -68,7 +69,8 @@ Calculating -------------------------------------
                 zstd    541.291  (± 7.4%) i/s -      2.700k in   5.037102s
 ```
 
-## 2017/02/16(https://github.com/SpringMT/zstd-ruby/commit/0ca4b99e4ffaf18b39b2cdb102b5b5bc31a18071)
+## 2017/02/16
+https://github.com/SpringMT/zstd-ruby/commit/0ca4b99e4ffaf18b39b2cdb102b5b5bc31a18071
 ### Compression
 ```
 % bundle exec ruby compress.rb city.json
