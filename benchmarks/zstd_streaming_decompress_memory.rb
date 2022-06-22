@@ -19,7 +19,8 @@ while true do
   result << stream.decompress(cstr[10..-1])
 
   if ((i % 1000) == 0 )
-     puts "count:#{i}\truby_memory:#{ObjectSpace.memsize_of_all/1000}\tobject_count:#{ObjectSpace.count_objects}\trss:#{`ps -o rss= -p #{Process.pid}`.to_i}"
+    GC.start
+    puts "count:#{i}\truby_memory:#{ObjectSpace.memsize_of_all/1000}\tobject_count:#{ObjectSpace.count_objects}\trss:#{`ps -o rss= -p #{Process.pid}`.to_i}"
   end
   i += 1
 end
