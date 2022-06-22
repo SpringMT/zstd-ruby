@@ -15,8 +15,9 @@ json_string = IO.read("./samples/#{sample_file_name}")
 i = 0
 while true do
   stream = Zstd::StreamingCompress.new
-  stream << json_string
+  stream << json_string[0, 5]
   res = stream.flush
+  stream << json_string[5..-1]
   res << stream.finish
   if ((i % 1000) == 0 )
     GC.start

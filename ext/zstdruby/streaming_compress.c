@@ -8,6 +8,15 @@ struct streaming_compress_t {
 };
 
 static void
+streaming_compress_mark(void *p)
+{
+  struct streaming_compress_t *sc = p;
+  // rb_gc_mark((VALUE)sc->ctx);
+  rb_gc_mark(sc->buf);
+  rb_gc_mark(sc->buf_size);
+}
+
+static void
 streaming_compress_free(void *p)
 {
   struct streaming_compress_t *sc = p;
@@ -26,7 +35,7 @@ streaming_compress_memsize(const void *p)
 
 static const rb_data_type_t streaming_compress_type = {
     "streaming_compress",
-    { 0, streaming_compress_free, streaming_compress_memsize, },
+    { streaming_compress_mark, streaming_compress_free, streaming_compress_memsize, },
      0, 0, RUBY_TYPED_FREE_IMMEDIATELY
 };
 
