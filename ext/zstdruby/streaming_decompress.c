@@ -7,15 +7,6 @@ struct streaming_decompress_t {
 };
 
 static void
-streaming_decompress_mark(void *p)
-{
-  struct streaming_decompress_t *sd = p;
-  // rb_gc_mark((VALUE)sd->ctx);
-  rb_gc_mark(sd->buf);
-  rb_gc_mark(sd->buf_size);
-}
-
-static void
 streaming_decompress_free(void *p)
 {
   struct streaming_decompress_t *sd = p;
@@ -34,7 +25,7 @@ streaming_decompress_memsize(const void *p)
 
 static const rb_data_type_t streaming_decompress_type = {
     "streaming_decompress",
-    { streaming_decompress_mark, streaming_decompress_free, streaming_decompress_memsize, },
+    { 0, streaming_decompress_free, streaming_decompress_memsize, },
      0, 0, RUBY_TYPED_FREE_IMMEDIATELY
 };
 

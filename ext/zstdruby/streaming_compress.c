@@ -58,7 +58,7 @@ rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
 
   int compression_level;
   if (NIL_P(compression_level_value)) {
-    compression_level = 0; // The default. See ZSTD_CLEVEL_DEFAULT in zstd_compress.c
+    compression_level = ZSTD_CLEVEL_DEFAULT;
   } else {
     compression_level = NUM2INT(compression_level_value);
   }
