@@ -41,6 +41,12 @@ compressed_data = Zstd.compress(data)
 compressed_data = Zstd.compress(data, complession_level) # default compression_level is 0
 ```
 
+### Compression using Dictionary
+```ruby
+# dictionary is supposed to have been created using `zstd --train`
+compressed_using_dict = Zstd.compress_using_dict("", dictionary)
+```
+
 ### Streaming Compression
 ```
 stream = Zstd::StreamingCompress.new
@@ -64,6 +70,12 @@ res << stream.finish
 
 ```ruby
 data = Zstd.decompress(compressed_data)
+```
+
+### Decomporession using Dictionary
+```ruby
+# dictionary is supposed to have been created using `zstd --train`
+Zstd.decompress_using_dict(compressed_using_dict, dictionary)
 ```
 
 ### Streaming Decompression
