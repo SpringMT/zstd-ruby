@@ -10,9 +10,7 @@ static void
 streaming_decompress_mark(void *p)
 {
   struct streaming_decompress_t *sd = p;
-  // rb_gc_mark((VALUE)sd->ctx);
   rb_gc_mark(sd->buf);
-  // rb_gc_mark(sd->buf_size);
 }
 
 static void
