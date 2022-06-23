@@ -53,13 +53,7 @@ rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
 {
   VALUE compression_level_value;
   rb_scan_args(argc, argv, "01", &compression_level_value);
-
-  int compression_level;
-  if (NIL_P(compression_level_value)) {
-    compression_level = ZSTD_CLEVEL_DEFAULT;
-  } else {
-    compression_level = NUM2INT(compression_level_value);
-  }
+  int compression_level = convert_compression_level(compression_level_value);
 
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);

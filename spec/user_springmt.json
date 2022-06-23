@@ -1,0 +1,19 @@
+{
+  "login": "SpringMT",
+  "id": 579005,
+  "avatar_url": "https://avatars.githubusercontent.com/u/579005?v=4",
+  "gravatar_id": "",
+  "url": "https://api.github.com/users/SpringMT",
+  "html_url": "https://github.com/SpringMT",
+  "followers_url": "https://api.github.com/users/SpringMT/followers",
+  "following_url": "https://api.github.com/users/SpringMT/following{/other_user}",
+  "gists_url": "https://api.github.com/users/SpringMT/gists{/gist_id}",
+  "starred_url": "https://api.github.com/users/SpringMT/starred{/owner}{/repo}",
+  "subscriptions_url": "https://api.github.com/users/SpringMT/subscriptions",
+  "organizations_url": "https://api.github.com/users/SpringMT/orgs",
+  "repos_url": "https://api.github.com/users/SpringMT/repos",
+  "events_url": "https://api.github.com/users/SpringMT/events{/privacy}",
+  "received_events_url": "https://api.github.com/users/SpringMT/received_events",
+  "type": "User",
+  "site_admin": false
+}
