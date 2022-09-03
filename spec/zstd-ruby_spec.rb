@@ -74,5 +74,14 @@ RSpec.describe Zstd do
       expect(Zstd.decompress(DummyForDecompress.new)).to eq('abc')
     end
   end
+
+  if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.0.0')
+    describe 'Ractor' do
+      it 'should be supported' do
+        r = Ractor.new { Zstd.compress('abc') }
+        expect(Zstd.decompress(r.take)).to eq('abc')
+      end
+    end
+  end
 end
 

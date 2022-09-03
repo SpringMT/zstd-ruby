@@ -52,5 +52,18 @@ RSpec.describe Zstd::StreamingCompress do
       expect(Zstd.decompress(res)).to eq('abcdef')
     end
   end
+
+  if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.0.0')
+    describe 'Ractor' do
+      it 'should be supported' do
+        r = Ractor.new {
+          stream = Zstd::StreamingCompress.new(5)
+          stream << "abc" << "def"
+          res = stream.finish
+        }
+        expect(Zstd.decompress(r.take)).to eq('abcdef')
+      end
+    end
+  end
 end
 
