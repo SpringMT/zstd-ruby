@@ -32,5 +32,21 @@ RSpec.describe Zstd::StreamingDecompress do
     end
   end
 
+  if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.0.0')
+    describe 'Ractor' do
+      it 'should be supported' do
+        r = Ractor.new {
+          cstr = Zstd.compress('foo bar buzz')
+          stream = Zstd::StreamingDecompress.new
+          result = ''
+          result << stream.decompress(cstr[0, 5])
+          result << stream.decompress(cstr[5, 5])
+          result << stream.decompress(cstr[10..-1])
+          result
+        }
+        expect(r.take).to eq('foo bar buzz')
+      end
+    end
+  end
 end
 
