@@ -1,4 +1,5 @@
 #include <common.h>
+#include <ruby/thread.h>
 
 struct streaming_decompress_t {
   ZSTD_DCtx* ctx;
@@ -65,6 +66,29 @@ rb_streaming_decompress_initialize(VALUE obj)
   return obj;
 }
 
+struct decompress_stream_nogvl_t {
+  ZSTD_DCtx* ctx;
+  ZSTD_outBuffer* output;
+  ZSTD_inBuffer* input;
+  size_t ret;
+};
+
+static void*
+decompressStream_nogvl(void* args)
+{
+  struct decompress_stream_nogvl_t* params = args;
+  params->ret = ZSTD_decompressStream(params->ctx, params->output, params->input);
+  return NULL;
+}
+
+static size_t
+decompressStream(ZSTD_DCtx* ctx, ZSTD_outBuffer* output, ZSTD_inBuffer* input)
+{
+  struct decompress_stream_nogvl_t params = { ctx, output, input, 0 };
+  rb_thread_call_without_gvl(decompressStream_nogvl, &params, NULL, NULL);
+  return params.ret;
+}
+
 static VALUE
 rb_streaming_decompress_decompress(VALUE obj, VALUE src)
 {
@@ -79,7 +103,7 @@ rb_streaming_decompress_decompress(VALUE obj, VALUE src)
   VALUE result = rb_str_new(0, 0);
   while (input.pos < input.size) {
     ZSTD_outBuffer output = { (void*)output_data, sd->buf_size, 0 };
-    size_t const ret = ZSTD_decompressStream(sd->ctx, &output, &input);
+    size_t const ret = decompressStream(sd->ctx, &output, &input);
     if (ZSTD_isError(ret)) {
       rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
     }
@@ -102,7 +126,7 @@ rb_streaming_decompress_addstr(VALUE obj, VALUE src)
 
   while (input.pos < input.size) {
     ZSTD_outBuffer output = { (void*)output_data, sd->buf_size, 0 };
-    size_t const result = ZSTD_decompressStream(sd->ctx, &output, &input);
+    size_t const result = decompressStream(sd->ctx, &output, &input);
     if (ZSTD_isError(result)) {
       rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(result));
     }
