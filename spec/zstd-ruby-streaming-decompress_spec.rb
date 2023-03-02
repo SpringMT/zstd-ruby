@@ -2,7 +2,7 @@ require "spec_helper"
 require 'zstd-ruby'
 require 'securerandom'
 
-RSpec.describe Zstd::StreamingDecompress do
+shared_examples "a streaming decompressor" do
   describe 'streaming decompress' do
     it 'shoud work' do
       # str = SecureRandom.hex(150)
@@ -22,7 +22,7 @@ RSpec.describe Zstd::StreamingDecompress do
       # str = SecureRandom.hex(150)
       str = "foo bar buzz" * 100
       cstr = Zstd.compress(str)
-      stream = Zstd::StreamingDecompress.new
+      stream = Zstd::StreamingDecompress.new(no_gvl: no_gvl)
       result = ''
       result << stream.decompress(cstr[0, 5])
       result << stream.decompress(cstr[5, 5])
@@ -35,18 +35,30 @@ RSpec.describe Zstd::StreamingDecompress do
   if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.0.0')
     describe 'Ractor' do
       it 'should be supported' do
-        r = Ractor.new {
+        r = Ractor.new(no_gvl) do |no_gvl|
           cstr = Zstd.compress('foo bar buzz')
-          stream = Zstd::StreamingDecompress.new
+          stream = Zstd::StreamingDecompress.new(no_gvl: no_gvl)
           result = ''
           result << stream.decompress(cstr[0, 5])
           result << stream.decompress(cstr[5, 5])
           result << stream.decompress(cstr[10..-1])
           result
-        }
+        end
         expect(r.take).to eq('foo bar buzz')
       end
     end
+  end
+end
+
+RSpec.describe Zstd::StreamingDecompress do
+  describe "with the gvl" do
+    let(:no_gvl) { false }
+    it_behaves_like "a streaming decompressor"
+  end
+
+  describe "without the gvl" do
+    let(:no_gvl) { true }
+    it_behaves_like "a streaming decompressor"
   end
 end
 

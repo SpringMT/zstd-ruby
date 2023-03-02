@@ -6,6 +6,7 @@ struct streaming_compress_t {
   ZSTD_CCtx* ctx;
   VALUE buf;
   size_t buf_size;
+  char nogvl;
 };
 
 static void
@@ -53,11 +54,18 @@ static VALUE
 rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
 {
   VALUE compression_level_value;
-  rb_scan_args(argc, argv, "01", &compression_level_value);
+  VALUE kwargs;
+  rb_scan_args(argc, argv, "01:", &compression_level_value, &kwargs);
   int compression_level = convert_compression_level(compression_level_value);
+
+  ID kwargs_keys[1];
+  kwargs_keys[0] = rb_intern("no_gvl");
+  VALUE kwargs_values[1];
+  rb_get_kwargs(kwargs, kwargs_keys, 0, 1, kwargs_values);
 
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
+  sc->nogvl = kwargs_values[0] != Qundef && RTEST(kwargs_values[0]);
   size_t const buffOutSize = ZSTD_CStreamOutSize();
 
   ZSTD_CCtx* ctx = ZSTD_createCCtx();
@@ -94,10 +102,15 @@ compressStream2_nogvl(void* arg)
 }
 
 static size_t
-compressStream2(ZSTD_CCtx* ctx, ZSTD_outBuffer* output, ZSTD_inBuffer* input, ZSTD_EndDirective endOp)
+compressStream2(char nogvl, ZSTD_CCtx* ctx, ZSTD_outBuffer* output, ZSTD_inBuffer* input, ZSTD_EndDirective endOp)
 {
   struct compress_stream_nogvl_t params = { ctx, output, input, endOp, 0 };
-  rb_thread_call_without_gvl(compressStream2_nogvl, &params, NULL, NULL);
+  if (nogvl) {
+    rb_thread_call_without_gvl(compressStream2_nogvl, &params, NULL, NULL);
+  }
+  else {
+    compressStream2_nogvl(&params);
+  }
   return params.ret;
 }
 
@@ -111,7 +124,7 @@ no_compress(struct streaming_compress_t* sc, ZSTD_EndDirective endOp)
   do {
     ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
 
-    size_t const ret = compressStream2(sc->ctx, &output, &input, endOp);
+    size_t const ret = compressStream2(sc->nogvl, sc->ctx, &output, &input, endOp);
     if (ZSTD_isError(ret)) {
       rb_raise(rb_eRuntimeError, "flush error error code: %s", ZSTD_getErrorName(ret));
     }
@@ -134,7 +147,7 @@ rb_streaming_compress_compress(VALUE obj, VALUE src)
   VALUE result = rb_str_new(0, 0);
   while (input.pos < input.size) {
     ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
-    size_t const ret = compressStream2(sc->ctx, &output, &input, ZSTD_e_continue);
+    size_t const ret = compressStream2(sc->nogvl, sc->ctx, &output, &input, ZSTD_e_continue);
     if (ZSTD_isError(ret)) {
       rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
     }
@@ -157,7 +170,7 @@ rb_streaming_compress_addstr(VALUE obj, VALUE src)
 
   while (input.pos < input.size) {
     ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
-    size_t const result = compressStream2(sc->ctx, &output, &input, ZSTD_e_continue);
+    size_t const result = compressStream2(sc->nogvl, sc->ctx, &output, &input, ZSTD_e_continue);
     if (ZSTD_isError(result)) {
       rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(result));
     }
