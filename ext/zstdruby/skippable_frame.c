@@ -6,7 +6,14 @@ static VALUE rb_write_skippable_frame(int argc, VALUE *argv, VALUE self)
 {
   VALUE input_value;
   VALUE skip_value;
-  rb_scan_args(argc, argv, "2", &input_value, &skip_value);
+  VALUE kwargs;
+  rb_scan_args(argc, argv, "2:", &input_value, &skip_value, &kwargs);
+
+  ID kwargs_keys[1];
+  kwargs_keys[0] = rb_intern("magic_variant");
+  VALUE kwargs_values[1];
+  rb_get_kwargs(kwargs, kwargs_keys, 0, 1, kwargs_values);
+  unsigned magic_variant = (kwargs_values[0] != Qundef) ? (NUM2INT(kwargs_values[0])) : 0;
 
   StringValue(input_value);
   StringValue(skip_value);
@@ -18,7 +25,7 @@ static VALUE rb_write_skippable_frame(int argc, VALUE *argv, VALUE self)
   size_t dst_size = input_size + ZSTD_SKIPPABLEHEADERSIZE + skip_size;
   VALUE output = rb_str_new(input_data, dst_size);
   char* output_data = RSTRING_PTR(output);
-  size_t output_size = ZSTD_writeSkippableFrame((void*)output_data, dst_size, (const void*)skip_data, skip_size, (unsigned)0);
+  size_t output_size = ZSTD_writeSkippableFrame((void*)output_data, dst_size, (const void*)skip_data, skip_size, magic_variant);
   if (ZSTD_isError(output_size)) {
     rb_raise(rb_eRuntimeError, "%s: %s", "write skippable frame failed", ZSTD_getErrorName(output_size));
   }
@@ -39,7 +46,8 @@ static VALUE rb_read_skippable_frame(VALUE self, VALUE input_value)
   size_t const skipLen = 129 * 1024;
   VALUE output = rb_str_new(NULL, skipLen);
   char* output_data = RSTRING_PTR(output);
-  size_t output_size = ZSTD_readSkippableFrame((void*)output_data, skipLen, (unsigned int*)0, (const void*)input_data, input_size);
+  unsigned readMagic;
+  size_t output_size = ZSTD_readSkippableFrame((void*)output_data, skipLen, &readMagic, (const void*)input_data, input_size);
   if (ZSTD_isError(output_size)) {
     rb_raise(rb_eRuntimeError, "%s: %s", "read skippable frame failed", ZSTD_getErrorName(output_size));
   }
