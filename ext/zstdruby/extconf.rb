@@ -1,6 +1,6 @@
 require "mkmf"
 
-$CFLAGS = '-I. -O3 -std=c99'
+$CFLAGS = '-I. -O3 -std=c99 -DZSTD_STATIC_LINKING_ONLY'
 $CPPFLAGS += " -fdeclspec" if CONFIG['CXX'] =~ /clang/
 
 Dir.chdir File.expand_path('..', __FILE__) do
