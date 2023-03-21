@@ -87,6 +87,14 @@ result << stream.decompress(cstr[0, 10])
 result << stream.decompress(cstr[10..-1])
 ```
 
+### Skippable flame
+
+```ruby
+compressed_data_with_skippable_frame = Zstd.write_skippable_frame(compressed_data, "sample data")
+
+Zstd.read_skippable_frame(compressed_data_with_skippable_frame)
+# => "sample data"
+```
 
 ## JRuby
 This gem does not support JRuby.
