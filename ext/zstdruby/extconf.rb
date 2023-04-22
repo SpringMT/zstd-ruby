@@ -1,5 +1,7 @@
 require "mkmf"
 
+have_func('rb_gc_mark_movable')
+
 $CFLAGS = '-I. -O3 -std=c99 -DZSTD_STATIC_LINKING_ONLY'
 $CPPFLAGS += " -fdeclspec" if CONFIG['CXX'] =~ /clang/
 
