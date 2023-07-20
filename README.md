@@ -87,7 +87,7 @@ result << stream.decompress(cstr[0, 10])
 result << stream.decompress(cstr[10..-1])
 ```
 
-### Skippable flame
+### Skippable frame
 
 ```ruby
 compressed_data_with_skippable_frame = Zstd.write_skippable_frame(compressed_data, "sample data")
