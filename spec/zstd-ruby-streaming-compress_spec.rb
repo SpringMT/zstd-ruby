@@ -53,6 +53,41 @@ shared_examples "a streaming compressor" do
     end
   end
 
+  describe 'dictionary' do
+    let(:dictionary) do
+      IO.read("#{__dir__}/dictionary")
+    end
+    let(:user_json) do
+      IO.read("#{__dir__}/user_springmt.json")
+    end
+    it 'shoud work' do
+      dict_stream = Zstd::StreamingCompress.new(5, dict: dictionary, no_gvl: no_gvl)
+      dict_stream << user_json
+      dict_res = dict_stream.finish
+      stream = Zstd::StreamingCompress.new(5, no_gvl: no_gvl)
+      stream << user_json
+      res = stream.finish
+
+      expect(dict_res.length).to be < res.length
+    end
+  end
+
+  describe 'nil dictionary' do
+    let(:user_json) do
+      IO.read("#{__dir__}/user_springmt.json")
+    end
+    it 'shoud work' do
+      dict_stream = Zstd::StreamingCompress.new(5, dict: nil, no_gvl: no_gvl)
+      dict_stream << user_json
+      dict_res = dict_stream.finish
+      stream = Zstd::StreamingCompress.new(5, no_gvl: no_gvl)
+      stream << user_json
+      res = stream.finish
+
+      expect(dict_res.length).to eq(res.length)
+    end
+  end
+
   if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.0.0')
     describe 'Ractor' do
       it 'should be supported' do

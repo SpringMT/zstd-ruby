@@ -55,10 +55,11 @@ rb_streaming_decompress_initialize(int argc, VALUE *argv, VALUE obj)
   VALUE kwargs;
   rb_scan_args(argc, argv, "00:", &kwargs);
 
-  ID kwargs_keys[1];
+  ID kwargs_keys[2];
   kwargs_keys[0] = rb_intern("no_gvl");
-  VALUE kwargs_values[1];
-  rb_get_kwargs(kwargs, kwargs_keys, 0, 1, kwargs_values);
+  kwargs_keys[1] = rb_intern("dict");
+  VALUE kwargs_values[2];
+  rb_get_kwargs(kwargs, kwargs_keys, 0, 2, kwargs_values);
 
   struct streaming_decompress_t* sd;
   TypedData_Get_Struct(obj, struct streaming_decompress_t, &streaming_decompress_type, sd);
@@ -68,6 +69,14 @@ rb_streaming_decompress_initialize(int argc, VALUE *argv, VALUE obj)
   ZSTD_DCtx* ctx = ZSTD_createDCtx();
   if (ctx == NULL) {
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createDCtx error");
+  }
+  if (kwargs_values[1] != Qundef && kwargs_values[1] != Qnil) {
+    char* dict_buffer = RSTRING_PTR(kwargs_values[1]);
+    size_t dict_size = RSTRING_LEN(kwargs_values[1]);
+    size_t load_dict_ret = ZSTD_DCtx_loadDictionary(ctx, dict_buffer, dict_size);
+    if (ZSTD_isError(load_dict_ret)) {
+      rb_raise(rb_eRuntimeError, "%s", "ZSTD_DCtx_loadDictionary failed");
+    }
   }
   sd->ctx = ctx;
   sd->buf = rb_str_new(NULL, buffOutSize);
