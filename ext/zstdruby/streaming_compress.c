@@ -11,7 +11,11 @@ static void
 streaming_compress_mark(void *p)
 {
   struct streaming_compress_t *sc = p;
+#ifdef HAVE_RB_GC_MARK_MOVABLE
+  rb_gc_mark_movable(sc->buf);
+#else
   rb_gc_mark(sc->buf);
+#endif
 }
 
 static void
@@ -31,10 +35,26 @@ streaming_compress_memsize(const void *p)
     return sizeof(struct streaming_compress_t);
 }
 
+#ifdef HAVE_RB_GC_MARK_MOVABLE
+static size_t
+streaming_compress_compact(void *p)
+{
+  struct streaming_compress_t *sc = p;
+  sc->buf = rb_gc_location(sc->buf);
+}
+#endif
+
 static const rb_data_type_t streaming_compress_type = {
-    "streaming_compress",
-    { streaming_compress_mark, streaming_compress_free, streaming_compress_memsize, },
-     0, 0, RUBY_TYPED_FREE_IMMEDIATELY
+  "streaming_compress",
+  {
+    streaming_compress_mark,
+    streaming_compress_free,
+    streaming_compress_memsize,
+#ifdef HAVE_RB_GC_MARK_MOVABLE
+    streaming_compress_compact,
+#endif
+  },
+  0, 0, RUBY_TYPED_FREE_IMMEDIATELY
 };
 
 static VALUE
