@@ -10,7 +10,7 @@ See https://github.com/facebook/zstd
 Fork from https://github.com/jarredholman/ruby-zstd.
 
 ## Zstd version
-v1.5.5 (https://github.com/facebook/zstd/tree/v1.5.6)
+[v1.5.6](https://github.com/facebook/zstd/tree/v1.5.6)
 
 ## Installation
 
