@@ -9,10 +9,10 @@ require 'securerandom'
 RSpec.describe Zstd do
   describe 'compress_using_dict' do
     let(:user_json) do
-      IO.read("#{__dir__}/user_springmt.json")
+      File.read("#{__dir__}/user_springmt.json")
     end
     let(:dictionary) do
-      IO.read("#{__dir__}/dictionary")
+      File.read("#{__dir__}/dictionary")
     end
 
     it 'should work' do
