@@ -19,3 +19,5 @@ vendor/
 .rspec_status
 
 .ruby-version
+
+.vscode
