@@ -12,6 +12,7 @@ bundle exec ruby decompress.rb city.json
 
 # Result
 ## 2024/03/29
+https://github.com/SpringMT/zstd-ruby/commit/53ab279a0db4125dfdc646f638a81f2625c720b5
 
 ```
 % system_profiler SPHardwareDataType
