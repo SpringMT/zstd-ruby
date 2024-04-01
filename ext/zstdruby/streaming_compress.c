@@ -36,7 +36,7 @@ streaming_compress_memsize(const void *p)
 }
 
 #ifdef HAVE_RB_GC_MARK_MOVABLE
-static size_t
+static void
 streaming_compress_compact(void *p)
 {
   struct streaming_compress_t *sc = p;
