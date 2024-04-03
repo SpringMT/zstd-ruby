@@ -125,6 +125,7 @@ rb_streaming_compress_compress(VALUE obj, VALUE src)
 
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
+
   const char* output_data = RSTRING_PTR(sc->buf);
   VALUE result = rb_str_new(0, 0);
   while (input.pos < input.size) {
@@ -139,26 +140,53 @@ rb_streaming_compress_compress(VALUE obj, VALUE src)
 }
 
 static VALUE
-rb_streaming_compress_addstr(VALUE obj, VALUE src)
+rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
 {
-  StringValue(src);
-  const char* input_data = RSTRING_PTR(src);
-  size_t input_size = RSTRING_LEN(src);
-  ZSTD_inBuffer input = { input_data, input_size, 0 };
-
+  size_t total = 0;
+  VALUE result = rb_str_new(0, 0);
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
   const char* output_data = RSTRING_PTR(sc->buf);
+  ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
 
-  while (input.pos < input.size) {
-    ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
-    size_t const result = ZSTD_compressStream2(sc->ctx, &output, &input, ZSTD_e_continue);
-    if (ZSTD_isError(result)) {
-      rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(result));
+  while (argc-- > 0) {
+    VALUE str = *argv++;
+    StringValue(str);
+    const char* input_data = RSTRING_PTR(str);
+    size_t input_size = RSTRING_LEN(str);
+    ZSTD_inBuffer input = { input_data, input_size, 0 };
+
+    while (input.pos < input.size) {
+      size_t const ret = ZSTD_compressStream2(sc->ctx, &output, &input, ZSTD_e_continue);
+      if (ZSTD_isError(ret)) {
+        rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
+      }
+      total += RSTRING_LEN(str);
     }
   }
-  return obj;
+  return SIZET2NUM(total);
 }
+
+/*
+ * Document-method: <<
+ * Same as IO.
+ */
+#define rb_streaming_compress_addstr  rb_io_addstr
+/*
+ * Document-method: printf
+ * Same as IO.
+ */
+#define rb_streaming_compress_printf  rb_io_printf
+/*
+ * Document-method: print
+ * Same as IO.
+ */
+#define rb_streaming_compress_print  rb_io_print
+/*
+ * Document-method: puts
+ * Same as IO.
+ */
+#define rb_streaming_compress_puts  rb_io_puts
 
 static VALUE
 rb_streaming_compress_flush(VALUE obj)
@@ -186,7 +214,12 @@ zstd_ruby_streaming_compress_init(void)
   rb_define_alloc_func(cStreamingCompress, rb_streaming_compress_allocate);
   rb_define_method(cStreamingCompress, "initialize", rb_streaming_compress_initialize, -1);
   rb_define_method(cStreamingCompress, "compress", rb_streaming_compress_compress, 1);
+  rb_define_method(cStreamingCompress, "write", rb_streaming_compress_write, -1);
   rb_define_method(cStreamingCompress, "<<", rb_streaming_compress_addstr, 1);
+  rb_define_method(cStreamingCompress, "printf", rb_streaming_compress_printf, -1);
+  rb_define_method(cStreamingCompress, "print", rb_streaming_compress_print, -1);
+  rb_define_method(cStreamingCompress, "puts", rb_streaming_compress_puts, -1);
+
   rb_define_method(cStreamingCompress, "flush", rb_streaming_compress_flush, 0);
   rb_define_method(cStreamingCompress, "finish", rb_streaming_compress_finish, 0);
 
@@ -194,4 +227,3 @@ zstd_ruby_streaming_compress_init(void)
   rb_define_const(cStreamingCompress, "FLUSH", INT2FIX(ZSTD_e_flush));
   rb_define_const(cStreamingCompress, "END", INT2FIX(ZSTD_e_end));
 }
-

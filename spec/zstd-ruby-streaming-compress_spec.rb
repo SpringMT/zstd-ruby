@@ -66,4 +66,3 @@ RSpec.describe Zstd::StreamingCompress do
     end
   end
 end
-

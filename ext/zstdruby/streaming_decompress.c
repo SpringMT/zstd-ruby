@@ -101,33 +101,11 @@ rb_streaming_decompress_decompress(VALUE obj, VALUE src)
     ZSTD_outBuffer output = { (void*)output_data, sd->buf_size, 0 };
     size_t const ret = ZSTD_decompressStream(sd->ctx, &output, &input);
     if (ZSTD_isError(ret)) {
-      rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
+      rb_raise(rb_eRuntimeError, "decompress error error code: %s", ZSTD_getErrorName(ret));
     }
     rb_str_cat(result, output.dst, output.pos);
   }
   return result;
-}
-
-static VALUE
-rb_streaming_decompress_addstr(VALUE obj, VALUE src)
-{
-  StringValue(src);
-  const char* input_data = RSTRING_PTR(src);
-  size_t input_size = RSTRING_LEN(src);
-  ZSTD_inBuffer input = { input_data, input_size, 0 };
-
-  struct streaming_decompress_t* sd;
-  TypedData_Get_Struct(obj, struct streaming_decompress_t, &streaming_decompress_type, sd);
-  const char* output_data = RSTRING_PTR(sd->buf);
-
-  while (input.pos < input.size) {
-    ZSTD_outBuffer output = { (void*)output_data, sd->buf_size, 0 };
-    size_t const result = ZSTD_decompressStream(sd->ctx, &output, &input);
-    if (ZSTD_isError(result)) {
-      rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(result));
-    }
-  }
-  return obj;
 }
 
 extern VALUE rb_mZstd, cStreamingDecompress;
@@ -138,6 +116,4 @@ zstd_ruby_streaming_decompress_init(void)
   rb_define_alloc_func(cStreamingDecompress, rb_streaming_decompress_allocate);
   rb_define_method(cStreamingDecompress, "initialize", rb_streaming_decompress_initialize, 0);
   rb_define_method(cStreamingDecompress, "decompress", rb_streaming_decompress_decompress, 1);
-  rb_define_method(cStreamingDecompress, "<<", rb_streaming_decompress_addstr, 1);
 }
-
