@@ -1,19 +1,21 @@
 #include <common.h>
 #include <streaming_compress.h>
-#include <ruby/thread.h>
 
 struct streaming_compress_t {
   ZSTD_CCtx* ctx;
   VALUE buf;
   size_t buf_size;
-  char nogvl;
 };
 
 static void
 streaming_compress_mark(void *p)
 {
   struct streaming_compress_t *sc = p;
+#ifdef HAVE_RB_GC_MARK_MOVABLE
+  rb_gc_mark_movable(sc->buf);
+#else
   rb_gc_mark(sc->buf);
+#endif
 }
 
 static void
@@ -33,10 +35,26 @@ streaming_compress_memsize(const void *p)
     return sizeof(struct streaming_compress_t);
 }
 
+#ifdef HAVE_RB_GC_MARK_MOVABLE
+static void
+streaming_compress_compact(void *p)
+{
+  struct streaming_compress_t *sc = p;
+  sc->buf = rb_gc_location(sc->buf);
+}
+#endif
+
 static const rb_data_type_t streaming_compress_type = {
-    "streaming_compress",
-    { streaming_compress_mark, streaming_compress_free, streaming_compress_memsize, },
-     0, 0, RUBY_TYPED_FREE_IMMEDIATELY
+  "streaming_compress",
+  {
+    streaming_compress_mark,
+    streaming_compress_free,
+    streaming_compress_memsize,
+#ifdef HAVE_RB_GC_MARK_MOVABLE
+    streaming_compress_compact,
+#endif
+  },
+  0, 0, RUBY_TYPED_FREE_IMMEDIATELY
 };
 
 static VALUE
@@ -54,28 +72,25 @@ static VALUE
 rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
 {
   VALUE compression_level_value;
-  VALUE kwargs;
-  rb_scan_args(argc, argv, "01:", &compression_level_value, &kwargs);
+  rb_scan_args(argc, argv, "01", &compression_level_value);
   int compression_level = convert_compression_level(compression_level_value);
 
-  ID kwargs_keys[2];
-  kwargs_keys[0] = rb_intern("no_gvl");
-  kwargs_keys[1] = rb_intern("dict");
-  VALUE kwargs_values[2];
-  rb_get_kwargs(kwargs, kwargs_keys, 0, 2, kwargs_values);
+  ID kwargs_keys[1];
+  kwargs_keys[0] = rb_intern("dict");
+  VALUE kwargs_values[1];
+  rb_get_kwargs(kwargs, kwargs_keys, 0, 1, kwargs_values);
 
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
-  sc->nogvl = kwargs_values[0] != Qundef && RTEST(kwargs_values[0]);
   size_t const buffOutSize = ZSTD_CStreamOutSize();
 
   ZSTD_CCtx* ctx = ZSTD_createCCtx();
   if (ctx == NULL) {
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createCCtx error");
   }
-  if (kwargs_values[1] != Qundef && kwargs_values[1] != Qnil) {
-    char* dict_buffer = RSTRING_PTR(kwargs_values[1]);
-    size_t dict_size = RSTRING_LEN(kwargs_values[1]);
+  if (kwargs_values[0] != Qundef && kwargs_values[0] != Qnil) {
+    char* dict_buffer = RSTRING_PTR(kwargs_values[0]);
+    size_t dict_size = RSTRING_LEN(kwargs_values[0]);
     size_t load_dict_ret = ZSTD_CCtx_loadDictionary(ctx, dict_buffer, dict_size);
     if (ZSTD_isError(load_dict_ret)) {
       rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
@@ -94,35 +109,6 @@ rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
     : (FIX2INT((val))))
 #define ARG_CONTINUE(val)     FIXNUMARG((val), ZSTD_e_continue)
 
-struct compress_stream_nogvl_t {
-  ZSTD_CCtx* ctx;
-  ZSTD_outBuffer* output;
-  ZSTD_inBuffer* input;
-  ZSTD_EndDirective endOp;
-  size_t ret;
-};
-
-static void*
-compressStream2_nogvl(void* arg)
-{
-  struct compress_stream_nogvl_t* params = arg;
-  params->ret = ZSTD_compressStream2(params->ctx, params->output, params->input, params->endOp);
-  return NULL;
-}
-
-static size_t
-compressStream2(char nogvl, ZSTD_CCtx* ctx, ZSTD_outBuffer* output, ZSTD_inBuffer* input, ZSTD_EndDirective endOp)
-{
-  struct compress_stream_nogvl_t params = { ctx, output, input, endOp, 0 };
-  if (nogvl) {
-    rb_thread_call_without_gvl(compressStream2_nogvl, &params, NULL, NULL);
-  }
-  else {
-    compressStream2_nogvl(&params);
-  }
-  return params.ret;
-}
-
 static VALUE
 no_compress(struct streaming_compress_t* sc, ZSTD_EndDirective endOp)
 {
@@ -133,7 +119,7 @@ no_compress(struct streaming_compress_t* sc, ZSTD_EndDirective endOp)
   do {
     ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
 
-    size_t const ret = compressStream2(sc->nogvl, sc->ctx, &output, &input, endOp);
+    size_t const ret = ZSTD_compressStream2(sc->ctx, &output, &input, endOp);
     if (ZSTD_isError(ret)) {
       rb_raise(rb_eRuntimeError, "flush error error code: %s", ZSTD_getErrorName(ret));
     }
@@ -152,11 +138,12 @@ rb_streaming_compress_compress(VALUE obj, VALUE src)
 
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
+
   const char* output_data = RSTRING_PTR(sc->buf);
   VALUE result = rb_str_new(0, 0);
   while (input.pos < input.size) {
     ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
-    size_t const ret = compressStream2(sc->nogvl, sc->ctx, &output, &input, ZSTD_e_continue);
+    size_t const ret = ZSTD_compressStream2(sc->ctx, &output, &input, ZSTD_e_continue);
     if (ZSTD_isError(ret)) {
       rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
     }
@@ -166,26 +153,53 @@ rb_streaming_compress_compress(VALUE obj, VALUE src)
 }
 
 static VALUE
-rb_streaming_compress_addstr(VALUE obj, VALUE src)
+rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
 {
-  StringValue(src);
-  const char* input_data = RSTRING_PTR(src);
-  size_t input_size = RSTRING_LEN(src);
-  ZSTD_inBuffer input = { input_data, input_size, 0 };
-
+  size_t total = 0;
+  VALUE result = rb_str_new(0, 0);
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
   const char* output_data = RSTRING_PTR(sc->buf);
+  ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
 
-  while (input.pos < input.size) {
-    ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
-    size_t const result = compressStream2(sc->nogvl, sc->ctx, &output, &input, ZSTD_e_continue);
-    if (ZSTD_isError(result)) {
-      rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(result));
+  while (argc-- > 0) {
+    VALUE str = *argv++;
+    StringValue(str);
+    const char* input_data = RSTRING_PTR(str);
+    size_t input_size = RSTRING_LEN(str);
+    ZSTD_inBuffer input = { input_data, input_size, 0 };
+
+    while (input.pos < input.size) {
+      size_t const ret = ZSTD_compressStream2(sc->ctx, &output, &input, ZSTD_e_continue);
+      if (ZSTD_isError(ret)) {
+        rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
+      }
+      total += RSTRING_LEN(str);
     }
   }
-  return obj;
+  return SIZET2NUM(total);
 }
+
+/*
+ * Document-method: <<
+ * Same as IO.
+ */
+#define rb_streaming_compress_addstr  rb_io_addstr
+/*
+ * Document-method: printf
+ * Same as IO.
+ */
+#define rb_streaming_compress_printf  rb_io_printf
+/*
+ * Document-method: print
+ * Same as IO.
+ */
+#define rb_streaming_compress_print  rb_io_print
+/*
+ * Document-method: puts
+ * Same as IO.
+ */
+#define rb_streaming_compress_puts  rb_io_puts
 
 static VALUE
 rb_streaming_compress_flush(VALUE obj)
@@ -213,7 +227,12 @@ zstd_ruby_streaming_compress_init(void)
   rb_define_alloc_func(cStreamingCompress, rb_streaming_compress_allocate);
   rb_define_method(cStreamingCompress, "initialize", rb_streaming_compress_initialize, -1);
   rb_define_method(cStreamingCompress, "compress", rb_streaming_compress_compress, 1);
+  rb_define_method(cStreamingCompress, "write", rb_streaming_compress_write, -1);
   rb_define_method(cStreamingCompress, "<<", rb_streaming_compress_addstr, 1);
+  rb_define_method(cStreamingCompress, "printf", rb_streaming_compress_printf, -1);
+  rb_define_method(cStreamingCompress, "print", rb_streaming_compress_print, -1);
+  rb_define_method(cStreamingCompress, "puts", rb_streaming_compress_puts, -1);
+
   rb_define_method(cStreamingCompress, "flush", rb_streaming_compress_flush, 0);
   rb_define_method(cStreamingCompress, "finish", rb_streaming_compress_finish, 0);
 
@@ -221,4 +240,3 @@ zstd_ruby_streaming_compress_init(void)
   rb_define_const(cStreamingCompress, "FLUSH", INT2FIX(ZSTD_e_flush));
   rb_define_const(cStreamingCompress, "END", INT2FIX(ZSTD_e_end));
 }
-

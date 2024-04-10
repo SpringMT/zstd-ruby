@@ -11,6 +11,81 @@ bundle exec ruby decompress.rb city.json
 
 
 # Result
+## 2024/03/29
+https://github.com/SpringMT/zstd-ruby/commit/53ab279a0db4125dfdc646f638a81f2625c720b5
+
+```
+% system_profiler SPHardwareDataType
+Hardware:
+
+    Hardware Overview:
+
+      Model Name: MacBook Pro
+      Model Identifier: Mac14,7
+      Chip: Apple M2
+      Total Number of Cores: 8 (4 performance and 4 efficiency)
+      Memory: 24 GB
+      System Firmware Version: 8422.100.650
+      OS Loader Version: 7459.141.1
+      Serial Number (system): V90G2M34LL
+      Hardware UUID: C9914E86-7CF2-5927-92F9-EE062FB87913
+      Provisioning UDID: 00008112-000205A22E31401E
+      Activation Lock Status: Disabled
+```
+### Compression
+```
+% bundle exec ruby compress.rb city.json
+ruby 3.3.0 (2023-12-25 revision 5124f9ac75) [arm64-darwin21]
+Warming up --------------------------------------
+              snappy    12.000 i/100ms
+                gzip     5.000 i/100ms
+                  xz     1.000 i/100ms
+                 lz4    43.000 i/100ms
+                zstd    34.000 i/100ms
+Calculating -------------------------------------
+              snappy    124.315 (± 3.2%) i/s -    624.000 in   5.024270s
+                gzip     51.185 (± 5.9%) i/s -    255.000 in   5.000801s
+                  xz      3.358 (± 0.0%) i/s -     17.000 in   5.074521s
+                 lz4    443.950 (± 4.1%) i/s -      2.236k in   5.045395s
+                zstd    352.064 (± 6.5%) i/s -      1.768k in   5.044874s
+
+```
+#### Data Size
+##### before
+```
+% ls -alh samples/city.json
+-rw-r--r--  1 springmt  staff   1.7M  9  3  2022 samples/city.json
+```
+##### after
+```
+% ls -alh results
+total 2816
+drwxr-xr-x   7 springmt  staff   224B  4  9  2023 .
+drwxr-xr-x  13 springmt  staff   416B  4  9  2023 ..
+-rw-r--r--   1 springmt  staff   219K  3 29 14:46 city.json.gzip
+-rw-r--r--   1 springmt  staff   384K  3 29 14:46 city.json.lz4
+-rw-r--r--   1 springmt  staff   358K  3 29 14:46 city.json.snappy
+-rw-r--r--   1 springmt  staff   166K  3 29 14:46 city.json.xz
+-rw-r--r--   1 springmt  staff   225K  3 29 14:46 city.json.zstd
+```
+### Decompression
+```
+% bundle exec ruby decompress.rb city.json
+ruby 3.3.0 (2023-12-25 revision 5124f9ac75) [arm64-darwin21]
+Warming up --------------------------------------
+              snappy    45.000 i/100ms
+                gzip    44.000 i/100ms
+                  xz     7.000 i/100ms
+                 lz4   121.000 i/100ms
+                zstd    95.000 i/100ms
+Calculating -------------------------------------
+              snappy    454.245 (± 3.1%) i/s -      2.295k in   5.057263s
+                gzip    440.680 (± 3.4%) i/s -      2.244k in   5.098470s
+                  xz     77.378 (± 2.6%) i/s -    392.000 in   5.070707s
+                 lz4      1.224k (± 5.1%) i/s -      6.171k in   5.056241s
+                zstd    932.464 (± 3.2%) i/s -      4.750k in   5.099694s
+```
+
 ## 2022/06/20
 https://github.com/SpringMT/zstd-ruby/commit/77a9e704747ad24761bcc8194884270f983538c1
 ```
