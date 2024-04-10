@@ -75,6 +75,11 @@ rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
   rb_scan_args(argc, argv, "01", &compression_level_value);
   int compression_level = convert_compression_level(compression_level_value);
 
+  ID kwargs_keys[1];
+  kwargs_keys[0] = rb_intern("dict");
+  VALUE kwargs_values[1];
+  rb_get_kwargs(kwargs, kwargs_keys, 0, 1, kwargs_values);
+
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
   size_t const buffOutSize = ZSTD_CStreamOutSize();
@@ -82,6 +87,14 @@ rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
   ZSTD_CCtx* ctx = ZSTD_createCCtx();
   if (ctx == NULL) {
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createCCtx error");
+  }
+  if (kwargs_values[0] != Qundef && kwargs_values[0] != Qnil) {
+    char* dict_buffer = RSTRING_PTR(kwargs_values[0]);
+    size_t dict_size = RSTRING_LEN(kwargs_values[0]);
+    size_t load_dict_ret = ZSTD_CCtx_loadDictionary(ctx, dict_buffer, dict_size);
+    if (ZSTD_isError(load_dict_ret)) {
+      rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
+    }
   }
   ZSTD_CCtx_setParameter(ctx, ZSTD_c_compressionLevel, compression_level);
   sc->ctx = ctx;

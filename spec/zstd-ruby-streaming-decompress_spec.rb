@@ -32,6 +32,44 @@ RSpec.describe Zstd::StreamingDecompress do
     end
   end
 
+  describe 'dictionary streaming decompress + GC.compact' do
+    let(:dictionary) do
+      IO.read("#{__dir__}/dictionary")
+    end
+    let(:user_json) do
+      IO.read("#{__dir__}/user_springmt.json")
+    end
+    it 'shoud work' do
+      compressed_json = Zstd.compress_using_dict(user_json, dictionary)
+      stream = Zstd::StreamingDecompress.new(dict: dictionary, no_gvl: no_gvl)
+      result = ''
+      result << stream.decompress(compressed_json[0, 5])
+      result << stream.decompress(compressed_json[5, 5])
+      GC.compact
+      result << stream.decompress(compressed_json[10..-1])
+      expect(result).to eq(user_json)
+    end
+  end
+
+  describe 'nil dictionary streaming decompress + GC.compact' do
+    let(:dictionary) do
+      IO.read("#{__dir__}/dictionary")
+    end
+    let(:user_json) do
+      IO.read("#{__dir__}/user_springmt.json")
+    end
+    it 'shoud work' do
+      compressed_json = Zstd.compress(user_json)
+      stream = Zstd::StreamingDecompress.new(dict: nil, no_gvl: no_gvl)
+      result = ''
+      result << stream.decompress(compressed_json[0, 5])
+      result << stream.decompress(compressed_json[5, 5])
+      GC.compact
+      result << stream.decompress(compressed_json[10..-1])
+      expect(result).to eq(user_json)
+    end
+  end
+
   if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.0.0')
     describe 'Ractor' do
       it 'should be supported' do

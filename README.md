@@ -66,6 +66,15 @@ res << stream.compress("def")
 res << stream.finish
 ```
 
+### Streaming Compression using Dictionary
+```ruby
+stream = Zstd::StreamingCompress.new(dict: IO.read('dictionary_file'))
+stream << "abc" << "def"
+res = stream.flush
+stream << "ghi"
+res << stream.finish
+```
+
 ### Simple Decompression
 
 ```ruby
@@ -82,6 +91,15 @@ Zstd.decompress_using_dict(compressed_using_dict, IO.read('dictionary_file'))
 ```ruby
 cstr = "" # Compressed data
 stream = Zstd::StreamingDecompress.new
+result = ''
+result << stream.decompress(cstr[0, 10])
+result << stream.decompress(cstr[10..-1])
+```
+
+### Streaming Decompression using dictionary
+```ruby
+cstr = "" # Compressed data
+stream = Zstd::StreamingDecompress.new(dict: IO.read('dictionary_file'))
 result = ''
 result << stream.decompress(cstr[0, 10])
 result << stream.decompress(cstr[10..-1])
