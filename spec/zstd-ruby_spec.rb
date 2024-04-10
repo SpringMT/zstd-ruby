@@ -60,6 +60,13 @@ RSpec.describe Zstd do
       expect(decompressed).to eq('')
     end
 
+    it 'should work for non-ascii string' do
+      compressed = Zstd.compress('あああ')
+      expect(compressed.bytesize).to eq(18)
+      decompressed = Zstd.decompress(compressed)
+      expect(decompressed.force_encoding('UTF-8')).to eq('あああ')
+    end
+
     it 'should raise exception with unsupported object' do
       expect { Zstd.decompress(Object.new) }.to raise_error(TypeError)
     end
