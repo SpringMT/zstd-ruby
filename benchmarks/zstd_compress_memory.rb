@@ -14,11 +14,11 @@ json_data = JSON.parse(IO.read("./samples/#{sample_file_name}"), symbolize_names
 json_string = json_data.to_json
 
 i = 0
-
+start_time = Time.now
 while true do
   Zstd.compress(json_string)
   if ((i % 1000) == 0 )
-    puts "count:#{i}\truby_memory:#{ObjectSpace.memsize_of_all/1000}\tobject_count:#{ObjectSpace.count_objects}\trss:#{`ps -o rss= -p #{Process.pid}`.to_i}"
+    puts "sec:#{Time.now - start_time}\tcount:#{i}\truby_memory:#{ObjectSpace.memsize_of_all/1000}\tobject_count:#{ObjectSpace.count_objects}\trss:#{`ps -o rss= -p #{Process.pid}`.to_i}"
   end
   i += 1
 end

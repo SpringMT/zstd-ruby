@@ -16,7 +16,7 @@ i = 0
 while true do
   Zstd.decompress IO.read("./results/#{sample_file_name}.zstd")
   if ((i % 1000) == 0 )
-     puts "count:#{i}\truby_memory:#{ObjectSpace.memsize_of_all/1000}\tobject_count:#{ObjectSpace.count_objects}\trss:#{`ps -o rss= -p #{Process.pid}`.to_i}"
+     puts "sec:#{Time.now - start_time}\tcount:#{i}\truby_memory:#{ObjectSpace.memsize_of_all/1000}\tobject_count:#{ObjectSpace.count_objects}\trss:#{`ps -o rss= -p #{Process.pid}`.to_i}"
   end
   i += 1
 end

@@ -12,6 +12,7 @@ sample_file_name = ARGV[0]
 
 cstr = IO.read("./results/#{sample_file_name}.zstd")
 i = 0
+start_time = Time.now
 while true do
   stream = Zstd::StreamingDecompress.new
   result = ''
@@ -20,7 +21,7 @@ while true do
 
   if ((i % 1000) == 0 )
     GC.start
-    puts "count:#{i}\truby_memory:#{ObjectSpace.memsize_of_all/1000}\tobject_count:#{ObjectSpace.count_objects}\trss:#{`ps -o rss= -p #{Process.pid}`.to_i}"
+    puts "sec:#{Time.now - start_time}\tcount:#{i}\truby_memory:#{ObjectSpace.memsize_of_all/1000}\tobject_count:#{ObjectSpace.count_objects}\trss:#{`ps -o rss= -p #{Process.pid}`.to_i}"
   end
   i += 1
 end
