@@ -34,20 +34,22 @@ Or install it yourself as:
 require 'zstd-ruby'
 ```
 
-### Simple Compression
+### Compression
+
+#### Simple Compression
 
 ```ruby
 compressed_data = Zstd.compress(data)
-compressed_data = Zstd.compress(data, complession_level) # default compression_level is 0
+compressed_data = Zstd.compress(data, level: complession_level) # default compression_level is 3
 ```
 
-### Compression using Dictionary
+#### Compression with Dictionary
 ```ruby
 # dictionary is supposed to have been created using `zstd --train`
-compressed_using_dict = Zstd.compress_using_dict("", IO.read('dictionary_file'))
+compressed_using_dict = Zstd.compress("", dict: IO.read('dictionary_file'))
 ```
 
-### Streaming Compression
+#### Streaming Compression
 ```ruby
 stream = Zstd::StreamingCompress.new
 stream << "abc" << "def"
@@ -66,7 +68,7 @@ res << stream.compress("def")
 res << stream.finish
 ```
 
-### Streaming Compression using Dictionary
+#### Streaming Compression with Dictionary
 ```ruby
 stream = Zstd::StreamingCompress.new(dict: IO.read('dictionary_file'))
 stream << "abc" << "def"
@@ -75,19 +77,30 @@ stream << "ghi"
 res << stream.finish
 ```
 
-### Simple Decompression
+#### Streaming Compression with level and Dictionary
+```ruby
+stream = Zstd::StreamingCompress.new(level: 5, dict: IO.read('dictionary_file'))
+stream << "abc" << "def"
+res = stream.flush
+stream << "ghi"
+res << stream.finish
+```
+
+### Decompression
+
+#### Simple Decompression
 
 ```ruby
 data = Zstd.decompress(compressed_data)
 ```
 
-### Decomporession using Dictionary
+#### Decompression with Dictionary
 ```ruby
 # dictionary is supposed to have been created using `zstd --train`
-Zstd.decompress_using_dict(compressed_using_dict, IO.read('dictionary_file'))
+Zstd.decompress(compressed_using_dict, dict: IO.read('dictionary_file'))
 ```
 
-### Streaming Decompression
+#### Streaming Decompression
 ```ruby
 cstr = "" # Compressed data
 stream = Zstd::StreamingDecompress.new
@@ -96,7 +109,7 @@ result << stream.decompress(cstr[0, 10])
 result << stream.decompress(cstr[10..-1])
 ```
 
-### Streaming Decompression using dictionary
+#### Streaming Decompression with dictionary
 ```ruby
 cstr = "" # Compressed data
 stream = Zstd::StreamingDecompress.new(dict: IO.read('dictionary_file'))
