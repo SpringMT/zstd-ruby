@@ -13,6 +13,7 @@ json_data = JSON.parse(IO.read("./samples/#{sample_file_name}"), symbolize_names
 json_string = json_data.to_json
 
 i = 0
+start_time = Time.now
 while true do
   Zstd.decompress IO.read("./results/#{sample_file_name}.zstd")
   if ((i % 1000) == 0 )
