@@ -46,7 +46,7 @@ compressed_data = Zstd.compress(data, level: complession_level) # default compre
 #### Compression with Dictionary
 ```ruby
 # dictionary is supposed to have been created using `zstd --train`
-compressed_using_dict = Zstd.compress("", dict: IO.read('dictionary_file'))
+compressed_using_dict = Zstd.compress("", dict: File.read('dictionary_file'))
 ```
 
 #### Streaming Compression
@@ -70,7 +70,7 @@ res << stream.finish
 
 #### Streaming Compression with Dictionary
 ```ruby
-stream = Zstd::StreamingCompress.new(dict: IO.read('dictionary_file'))
+stream = Zstd::StreamingCompress.new(dict: File.read('dictionary_file'))
 stream << "abc" << "def"
 res = stream.flush
 stream << "ghi"
@@ -79,7 +79,7 @@ res << stream.finish
 
 #### Streaming Compression with level and Dictionary
 ```ruby
-stream = Zstd::StreamingCompress.new(level: 5, dict: IO.read('dictionary_file'))
+stream = Zstd::StreamingCompress.new(level: 5, dict: File.read('dictionary_file'))
 stream << "abc" << "def"
 res = stream.flush
 stream << "ghi"
@@ -97,7 +97,7 @@ data = Zstd.decompress(compressed_data)
 #### Decompression with Dictionary
 ```ruby
 # dictionary is supposed to have been created using `zstd --train`
-Zstd.decompress(compressed_using_dict, dict: IO.read('dictionary_file'))
+Zstd.decompress(compressed_using_dict, dict: File.read('dictionary_file'))
 ```
 
 #### Streaming Decompression
@@ -112,7 +112,7 @@ result << stream.decompress(cstr[10..-1])
 #### Streaming Decompression with dictionary
 ```ruby
 cstr = "" # Compressed data
-stream = Zstd::StreamingDecompress.new(dict: IO.read('dictionary_file'))
+stream = Zstd::StreamingDecompress.new(dict: File.read('dictionary_file'))
 result = ''
 result << stream.decompress(cstr[0, 10])
 result << stream.decompress(cstr[10..-1])
