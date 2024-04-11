@@ -46,7 +46,7 @@ RSpec.describe Zstd do
     end
 
     it 'should support compression levels with blank dictionary' do
-      compressed_using_dict_10 = Zstd.compress_using_dict(user_json, dict: dictionary, level: 10)
+      compressed_using_dict_10 = Zstd.compress(user_json, dict: "", level: 10)
       expect(user_json).to eq(Zstd.decompress(compressed_using_dict_10, dict: ""))
       expect(user_json).to eq(Zstd.decompress(compressed_using_dict_10))
     end
