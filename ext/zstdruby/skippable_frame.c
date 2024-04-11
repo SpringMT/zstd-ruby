@@ -1,4 +1,4 @@
-#include <common.h>
+#include "common.h"
 
 extern VALUE rb_mZstd;
 

@@ -3,6 +3,10 @@ require 'zstd-ruby'
 require 'securerandom'
 
 RSpec.describe Zstd do
+  let(:user_json) do
+    File.read("#{__dir__}/user_springmt.json")
+  end
+
   it "has a version number" do
     expect(Zstd::VERSION).not_to be nil
   end
@@ -15,15 +19,25 @@ RSpec.describe Zstd do
 
   describe 'compress' do
     it 'should work' do
-      compressed = Zstd.compress('abc' * 10)
+      compressed = Zstd.compress(user_json)
       expect(compressed).to be_a(String)
-      expect(compressed).to_not eq('abc' * 10)
+      expect(compressed).to_not eq(user_json)
     end
 
     it 'should support compression levels' do
-      compressed = Zstd.compress('abc', 1)
+      compressed = Zstd.compress(user_json, 1)
       expect(compressed).to be_a(String)
-      expect(compressed).to_not eq('abc')
+      expect(compressed).to_not eq(user_json)
+    end
+
+    it 'should support compression keyward args levels' do
+      compressed = Zstd.compress(user_json, level: 1)
+      compressed_with_arg = Zstd.compress(user_json, 1)
+      compressed_default = Zstd.compress(user_json)
+      expect(compressed).to be_a(String)
+      expect(compressed).to_not eq(user_json)
+      expect(compressed).to eq(compressed_with_arg)
+      expect(compressed_default.length).to be < compressed_with_arg.length
     end
 
     it 'should raise exception with unsupported object' do

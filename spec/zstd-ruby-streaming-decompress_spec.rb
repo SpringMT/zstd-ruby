@@ -34,14 +34,14 @@ RSpec.describe Zstd::StreamingDecompress do
 
   describe 'dictionary streaming decompress + GC.compact' do
     let(:dictionary) do
-      IO.read("#{__dir__}/dictionary")
+      File.read("#{__dir__}/dictionary")
     end
     let(:user_json) do
-      IO.read("#{__dir__}/user_springmt.json")
+      File.read("#{__dir__}/user_springmt.json")
     end
     it 'shoud work' do
-      compressed_json = Zstd.compress_using_dict(user_json, dictionary)
-      stream = Zstd::StreamingDecompress.new(dict: dictionary, no_gvl: no_gvl)
+      compressed_json = Zstd.compress(user_json, dict: dictionary)
+      stream = Zstd::StreamingDecompress.new(dict: dictionary)
       result = ''
       result << stream.decompress(compressed_json[0, 5])
       result << stream.decompress(compressed_json[5, 5])
@@ -53,14 +53,14 @@ RSpec.describe Zstd::StreamingDecompress do
 
   describe 'nil dictionary streaming decompress + GC.compact' do
     let(:dictionary) do
-      IO.read("#{__dir__}/dictionary")
+      File.read("#{__dir__}/dictionary")
     end
     let(:user_json) do
-      IO.read("#{__dir__}/user_springmt.json")
+      File.read("#{__dir__}/user_springmt.json")
     end
     it 'shoud work' do
       compressed_json = Zstd.compress(user_json)
-      stream = Zstd::StreamingDecompress.new(dict: nil, no_gvl: no_gvl)
+      stream = Zstd::StreamingDecompress.new(dict: nil)
       result = ''
       result << stream.decompress(compressed_json[0, 5])
       result << stream.decompress(compressed_json[5, 5])

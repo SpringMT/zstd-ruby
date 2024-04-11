@@ -12,28 +12,39 @@ static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
 {
   VALUE input_value;
   VALUE compression_level_value;
-  rb_scan_args(argc, argv, "11", &input_value, &compression_level_value);
-  int compression_level = convert_compression_level(compression_level_value);
+  VALUE kwargs;
+  rb_scan_args(argc, argv, "11:", &input_value, &compression_level_value, &kwargs);
+
+  ZSTD_CCtx* const ctx = ZSTD_createCCtx();
+  if (ctx == NULL) {
+    rb_raise(rb_eRuntimeError, "%s", "ZSTD_createCCtx error");
+  }
+
+  set_compress_params(ctx, compression_level_value, kwargs);
 
   StringValue(input_value);
   char* input_data = RSTRING_PTR(input_value);
   size_t input_size = RSTRING_LEN(input_value);
+  ZSTD_inBuffer input = { input_data, input_size, 0 };
   size_t max_compressed_size = ZSTD_compressBound(input_size);
+  VALUE buf = rb_str_new(NULL, max_compressed_size);
+  char* output_data = RSTRING_PTR(buf);
+  ZSTD_outBuffer output = { (void*)output_data, max_compressed_size, 0 };
 
-  VALUE output = rb_str_new(NULL, max_compressed_size);
-  char* output_data = RSTRING_PTR(output);
-  size_t compressed_size = ZSTD_compress((void*)output_data, max_compressed_size,
-                                         (void*)input_data, input_size, compression_level);
-  if (ZSTD_isError(compressed_size)) {
-    rb_raise(rb_eRuntimeError, "%s: %s", "compress failed", ZSTD_getErrorName(compressed_size));
+  size_t const ret = zstd_compress(ctx, &output, &input, ZSTD_e_end);
+  if (ZSTD_isError(ret)) {
+    ZSTD_freeCCtx(ctx);
+    rb_raise(rb_eRuntimeError, "%s: %s", "compress failed", ZSTD_getErrorName(ret));
   }
-
-  rb_str_resize(output, compressed_size);
-  return output;
+  VALUE result = rb_str_new(0, 0);
+  rb_str_cat(result, output.dst, output.pos);
+  ZSTD_freeCCtx(ctx);
+  return result;
 }
 
 static VALUE rb_compress_using_dict(int argc, VALUE *argv, VALUE self)
 {
+  rb_warn("Zstd.compress_using_dict is deprecated; use Zstd.compress with `dict:` instead.");
   VALUE input_value;
   VALUE dict;
   VALUE compression_level_value;
@@ -78,8 +89,6 @@ static VALUE rb_compress_using_dict(int argc, VALUE *argv, VALUE self)
 
 static VALUE decompress_buffered(const char* input_data, size_t input_size)
 {
-  const size_t outputBufferSize = 4096;
-
   ZSTD_DStream* const dstream = ZSTD_createDStream();
   if (dstream == NULL) {
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createDStream failed");
@@ -96,7 +105,7 @@ static VALUE decompress_buffered(const char* input_data, size_t input_size)
 
   ZSTD_inBuffer input = { input_data, input_size, 0 };
   while (input.pos < input.size) {
-    output.size += outputBufferSize;
+    output.size += ZSTD_DStreamOutSize();
     rb_str_resize(output_string, output.size);
     output.dst = RSTRING_PTR(output_string);
 
@@ -112,8 +121,11 @@ static VALUE decompress_buffered(const char* input_data, size_t input_size)
   return output_string;
 }
 
-static VALUE rb_decompress(VALUE self, VALUE input_value)
+static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
 {
+  VALUE input_value;
+  VALUE kwargs;
+  rb_scan_args(argc, argv, "10:", &input_value, &kwargs);
   StringValue(input_value);
   char* input_data = RSTRING_PTR(input_value);
   size_t input_size = RSTRING_LEN(input_value);
@@ -122,15 +134,22 @@ static VALUE rb_decompress(VALUE self, VALUE input_value)
   if (uncompressed_size == ZSTD_CONTENTSIZE_ERROR) {
     rb_raise(rb_eRuntimeError, "%s: %s", "not compressed by zstd", ZSTD_getErrorName(uncompressed_size));
   }
+  // ZSTD_decompressStream may be called multiple times when ZSTD_CONTENTSIZE_UNKNOWN, causing slowness.
+  // Therefore, we will not standardize on ZSTD_decompressStream
   if (uncompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
     return decompress_buffered(input_data, input_size);
   }
 
+  ZSTD_DCtx* const dctx = ZSTD_createDCtx();
+  if (dctx == NULL) {
+    rb_raise(rb_eRuntimeError, "%s", "ZSTD_createDCtx failed");
+  }
+  set_decompress_params(dctx, kwargs);
+
   VALUE output = rb_str_new(NULL, uncompressed_size);
   char* output_data = RSTRING_PTR(output);
-  size_t const decompress_size = ZSTD_decompress((void*)output_data, uncompressed_size,
-                                           (void*)input_data, input_size);
 
+  size_t const decompress_size =  ZSTD_decompressDCtx(dctx, output_data, uncompressed_size, input_data, input_size);
   if (ZSTD_isError(decompress_size)) {
     rb_raise(rb_eRuntimeError, "%s: %s", "decompress error", ZSTD_getErrorName(decompress_size));
   }
@@ -140,6 +159,7 @@ static VALUE rb_decompress(VALUE self, VALUE input_value)
 
 static VALUE rb_decompress_using_dict(int argc, VALUE *argv, VALUE self)
 {
+  rb_warn("Zstd.decompress_using_dict is deprecated; use Zstd.decompress with `dict:` instead.");
   VALUE input_value;
   VALUE dict;
   rb_scan_args(argc, argv, "20", &input_value, &dict);
@@ -193,6 +213,6 @@ zstd_ruby_init(void)
   rb_define_module_function(rb_mZstd, "zstd_version", zstdVersion, 0);
   rb_define_module_function(rb_mZstd, "compress", rb_compress, -1);
   rb_define_module_function(rb_mZstd, "compress_using_dict", rb_compress_using_dict, -1);
-  rb_define_module_function(rb_mZstd, "decompress", rb_decompress, 1);
+  rb_define_module_function(rb_mZstd, "decompress", rb_decompress, -1);
   rb_define_module_function(rb_mZstd, "decompress_using_dict", rb_decompress_using_dict, -1);
 }
