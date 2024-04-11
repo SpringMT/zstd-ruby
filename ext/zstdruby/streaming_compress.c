@@ -147,7 +147,6 @@ rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
   const char* output_data = RSTRING_PTR(sc->buf);
-  ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
 
   while (argc-- > 0) {
     VALUE str = *argv++;
@@ -157,6 +156,7 @@ rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
     ZSTD_inBuffer input = { input_data, input_size, 0 };
 
     while (input.pos < input.size) {
+      ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
       size_t const ret = zstd_compress(sc->ctx, &output, &input, ZSTD_e_continue);
       if (ZSTD_isError(ret)) {
         rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
