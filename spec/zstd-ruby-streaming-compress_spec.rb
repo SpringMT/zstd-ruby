@@ -46,7 +46,7 @@ RSpec.describe Zstd::StreamingCompress do
 
   describe 'compression level' do
     it 'shoud work' do
-      stream = Zstd::StreamingCompress.new(5)
+      stream = Zstd::StreamingCompress.new(level: 5)
       stream << "abc" << "def"
       res = stream.finish
       expect(Zstd.decompress(res)).to eq('abcdef')
@@ -55,16 +55,16 @@ RSpec.describe Zstd::StreamingCompress do
 
   describe 'dictionary' do
     let(:dictionary) do
-      IO.read("#{__dir__}/dictionary")
+      File.read("#{__dir__}/dictionary")
     end
     let(:user_json) do
-      IO.read("#{__dir__}/user_springmt.json")
+      File.read("#{__dir__}/user_springmt.json")
     end
     it 'shoud work' do
-      dict_stream = Zstd::StreamingCompress.new(5, dict: dictionary, no_gvl: no_gvl)
+      dict_stream = Zstd::StreamingCompress.new(level: 5, dict: dictionary)
       dict_stream << user_json
       dict_res = dict_stream.finish
-      stream = Zstd::StreamingCompress.new(5, no_gvl: no_gvl)
+      stream = Zstd::StreamingCompress.new(level: 5)
       stream << user_json
       res = stream.finish
 
@@ -74,13 +74,13 @@ RSpec.describe Zstd::StreamingCompress do
 
   describe 'nil dictionary' do
     let(:user_json) do
-      IO.read("#{__dir__}/user_springmt.json")
+      File.read("#{__dir__}/user_springmt.json")
     end
     it 'shoud work' do
-      dict_stream = Zstd::StreamingCompress.new(5, dict: nil, no_gvl: no_gvl)
+      dict_stream = Zstd::StreamingCompress.new(level: 5, dict: nil)
       dict_stream << user_json
       dict_res = dict_stream.finish
-      stream = Zstd::StreamingCompress.new(5, no_gvl: no_gvl)
+      stream = Zstd::StreamingCompress.new(level: 5)
       stream << user_json
       res = stream.finish
 
@@ -92,7 +92,7 @@ RSpec.describe Zstd::StreamingCompress do
     describe 'Ractor' do
       it 'should be supported' do
         r = Ractor.new {
-          stream = Zstd::StreamingCompress.new(5)
+          stream = Zstd::StreamingCompress.new(level: 5)
           stream << "abc" << "def"
           res = stream.finish
         }

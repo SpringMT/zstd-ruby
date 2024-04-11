@@ -1,4 +1,5 @@
-#include <common.h>
+#include "common.h"
+
 VALUE rb_mZstd;
 void zstd_ruby_init(void);
 void zstd_ruby_skippable_frame_init(void);
