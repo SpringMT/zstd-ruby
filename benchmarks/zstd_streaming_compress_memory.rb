@@ -10,7 +10,7 @@ p "#{ObjectSpace.memsize_of_all/1000} #{ObjectSpace.count_objects} #{`ps -o rss=
 
 sample_file_name = ARGV[0]
 
-json_string = IO.read("./samples/#{sample_file_name}")
+json_string = File.read("./samples/#{sample_file_name}")
 
 i = 0
 start_time = Time.now

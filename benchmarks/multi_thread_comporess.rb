@@ -14,12 +14,19 @@ sample_file_name = ARGV[0]
 json_string = File.read("./samples/#{sample_file_name}")
 
 queue = Queue.new
+# queue = []
 GUESSES.times { queue << json_string }
+# stream = Zstd::StreamingCompress.new(thread_num: THREADS)
 THREADS.times { queue << nil }
 THREADS.times.map {
   Thread.new {
     while str = queue.pop
-      Zstd.compress(str)
+      # stream = Zstd::StreamingCompress.new(thread_num: THREADS)
+      #stream << str
+      #stream << str
+      #stream << str
+      #stream.flush
+      Zstd.compress(str, thread_num: 1)
     end
   }
 }.each(&:join)

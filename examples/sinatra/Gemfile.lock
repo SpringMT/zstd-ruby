@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    zstd-ruby (1.5.6.1)
+    zstd-ruby (1.5.6.2)
 
 GEM
   remote: https://rubygems.org/
