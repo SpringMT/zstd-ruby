@@ -43,12 +43,11 @@ static size_t zstd_compress(ZSTD_CCtx* const ctx, ZSTD_outBuffer* output, ZSTD_i
 
 static void set_compress_params(ZSTD_CCtx* const ctx, VALUE level_from_args, VALUE kwargs)
 {
-  ID kwargs_keys[3];
+  ID kwargs_keys[2];
   kwargs_keys[0] = rb_intern("level");
   kwargs_keys[1] = rb_intern("dict");
-  kwargs_keys[2] = rb_intern("thread_num");
-  VALUE kwargs_values[3];
-  rb_get_kwargs(kwargs, kwargs_keys, 0, 3, kwargs_values);
+  VALUE kwargs_values[2];
+  rb_get_kwargs(kwargs, kwargs_keys, 0, 2, kwargs_values);
 
   int compression_level = ZSTD_CLEVEL_DEFAULT;
   if (kwargs_values[0] != Qundef && kwargs_values[0] != Qnil) {
@@ -67,15 +66,6 @@ static void set_compress_params(ZSTD_CCtx* const ctx, VALUE level_from_args, VAL
       ZSTD_freeCCtx(ctx);
       rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
     }
-  }
-
-  if (kwargs_values[2] != Qundef && kwargs_values[2] != Qnil) {
-    int thread_num = NUM2INT(kwargs_values[2]);
-    size_t const r = ZSTD_CCtx_setParameter(ctx, ZSTD_c_nbWorkers, thread_num);
-    if (ZSTD_isError(r)) {
-      rb_warn("Note: the linked libzstd library doesn't support multithreading.Reverting to single-thread mode. \n");
-    }
-    // ZSTD_CCtx_setParameter(ctx, ZSTD_c_jobSize, thread_num);
   }
 }
 
