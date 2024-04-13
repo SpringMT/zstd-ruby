@@ -32,7 +32,7 @@ static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
   char* output_data = RSTRING_PTR(buf);
   ZSTD_outBuffer output = { (void*)output_data, max_compressed_size, 0 };
 
-  size_t const ret = zstd_compress(ctx, &output, &input, ZSTD_e_end);
+  size_t const ret = zstd_compress(ctx, &output, &input, ZSTD_e_end, true);
   if (ZSTD_isError(ret)) {
     ZSTD_freeCCtx(ctx);
     rb_raise(rb_eRuntimeError, "%s: %s", "compress failed", ZSTD_getErrorName(ret));
@@ -99,7 +99,7 @@ static VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t
     rb_str_resize(output_string, output.size);
     output.dst = RSTRING_PTR(output_string);
 
-    size_t ret = zstd_decompress(dctx, &output, &input);
+    size_t ret = zstd_decompress(dctx, &output, &input, true);
     if (ZSTD_isError(ret)) {
       ZSTD_freeDCtx(dctx);
       rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_decompressStream failed", ZSTD_getErrorName(ret));
