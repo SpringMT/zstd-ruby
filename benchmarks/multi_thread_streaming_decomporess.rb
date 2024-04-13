@@ -1,7 +1,4 @@
-require 'benchmark/ips'
 $LOAD_PATH.unshift '../lib'
-require 'json'
-require 'objspace'
 require 'zstd-ruby'
 require 'thread'
 
@@ -12,14 +9,17 @@ p GUESSES: GUESSES, THREADS: THREADS
 
 sample_file_name = ARGV[0]
 json_string = File.read("./samples/#{sample_file_name}")
+target = Zstd.compress(json_string)
 
 queue = Queue.new
-GUESSES.times { queue << json_string }
+GUESSES.times { queue << target }
 THREADS.times { queue << nil }
 THREADS.times.map {
   Thread.new {
     while str = queue.pop
-      Zstd.compress(str)
+      stream = Zstd::StreamingDecompress.new
+      stream.decompress(str)
+      stream.decompress(str)
     end
   }
 }.each(&:join)

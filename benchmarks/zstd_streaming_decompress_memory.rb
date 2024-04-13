@@ -10,7 +10,7 @@ p "#{ObjectSpace.memsize_of_all/1000} #{ObjectSpace.count_objects} #{`ps -o rss=
 
 sample_file_name = ARGV[0]
 
-cstr = IO.read("./results/#{sample_file_name}.zstd")
+cstr = File.read("./results/#{sample_file_name}.zstd")
 i = 0
 start_time = Time.now
 while true do

@@ -2,7 +2,7 @@ require "mkmf"
 
 have_func('rb_gc_mark_movable')
 
-$CFLAGS = '-I. -O3 -std=c99 -DZSTD_STATIC_LINKING_ONLY'
+$CFLAGS = '-I. -O3 -std=c99 -DZSTD_STATIC_LINKING_ONLY -DZSTD_MULTITHREAD -pthread -DDEBUGLEVEL=0'
 $CPPFLAGS += " -fdeclspec" if CONFIG['CXX'] =~ /clang/
 
 Dir.chdir File.expand_path('..', __FILE__) do

@@ -10,7 +10,7 @@ p "#{ObjectSpace.memsize_of_all/1000} #{ObjectSpace.count_objects} #{`ps -o rss=
 
 sample_file_name = ARGV[0]
 
-json_data = JSON.parse(IO.read("./samples/#{sample_file_name}"), symbolize_names: true)
+json_data = JSON.parse(File.read("./samples/#{sample_file_name}"), symbolize_names: true)
 json_string = json_data.to_json
 
 i = 0
