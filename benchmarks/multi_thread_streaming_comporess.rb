@@ -1,7 +1,4 @@
-require 'benchmark/ips'
 $LOAD_PATH.unshift '../lib'
-require 'json'
-require 'objspace'
 require 'zstd-ruby'
 require 'thread'
 
