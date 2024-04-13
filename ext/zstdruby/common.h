@@ -34,7 +34,7 @@ static size_t zstd_compress(ZSTD_CCtx* const ctx, ZSTD_outBuffer* output, ZSTD_i
 {
 #ifdef HAVE_RUBY_THREAD_H
     struct compress_params params = { ctx, output, input, endOp };
-    rb_thread_call_without_gvl(compress_wrapper, &params, RUBY_UBF_IO, NULL);
+    rb_thread_call_without_gvl(compress_wrapper, &params, NULL, NULL);
     return params.ret;
 #else
     return ZSTD_compressStream2(ctx, output, input, endOp);
@@ -67,6 +67,31 @@ static void set_compress_params(ZSTD_CCtx* const ctx, VALUE level_from_args, VAL
       rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
     }
   }
+}
+
+struct decompress_params {
+  ZSTD_DCtx* dctx;
+  ZSTD_outBuffer* output;
+  ZSTD_inBuffer* input;
+  size_t ret;
+};
+
+static void* decompress_wrapper(void* args)
+{
+    struct decompress_params* params = args;
+    params->ret = ZSTD_decompressStream(params->dctx, params->output, params->input);
+    return NULL;
+}
+
+static size_t zstd_decompress(ZSTD_DCtx* const dctx, ZSTD_outBuffer* output, ZSTD_inBuffer* input)
+{
+#ifdef HAVE_RUBY_THREAD_H
+    struct decompress_params params = { dctx, output, input };
+    rb_thread_call_without_gvl(decompress_wrapper, &params, NULL, NULL);
+    return params.ret;
+#else
+    return ZSTD_decompressStream(dctx, output, input);
+#endif
 }
 
 static void set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)

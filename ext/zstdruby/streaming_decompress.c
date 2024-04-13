@@ -104,7 +104,7 @@ rb_streaming_decompress_decompress(VALUE obj, VALUE src)
   VALUE result = rb_str_new(0, 0);
   while (input.pos < input.size) {
     ZSTD_outBuffer output = { (void*)output_data, sd->buf_size, 0 };
-    size_t const ret = ZSTD_decompressStream(sd->dctx, &output, &input);
+    size_t const ret = zstd_decompress(sd->dctx, &output, &input);
     if (ZSTD_isError(ret)) {
       rb_raise(rb_eRuntimeError, "decompress error error code: %s", ZSTD_getErrorName(ret));
     }
