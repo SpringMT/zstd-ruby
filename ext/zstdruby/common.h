@@ -15,32 +15,6 @@ static int convert_compression_level(VALUE compression_level_value)
   return NUM2INT(compression_level_value);
 }
 
-struct compress_params {
-  ZSTD_CCtx* ctx;
-  ZSTD_outBuffer* output;
-  ZSTD_inBuffer* input;
-  ZSTD_EndDirective endOp;
-  size_t ret;
-};
-
-static void* compress_wrapper(void* args)
-{
-    struct compress_params* params = args;
-    params->ret = ZSTD_compressStream2(params->ctx, params->output, params->input, params->endOp);
-    return NULL;
-}
-
-static size_t zstd_compress(ZSTD_CCtx* const ctx, ZSTD_outBuffer* output, ZSTD_inBuffer* input, ZSTD_EndDirective endOp)
-{
-#ifdef HAVE_RUBY_THREAD_H
-    struct compress_params params = { ctx, output, input, endOp };
-    rb_thread_call_without_gvl(compress_wrapper, &params, NULL, NULL);
-    return params.ret;
-#else
-    return ZSTD_compressStream2(ctx, output, input, endOp);
-#endif
-}
-
 static void set_compress_params(ZSTD_CCtx* const ctx, VALUE level_from_args, VALUE kwargs)
 {
   ID kwargs_keys[2];
@@ -69,6 +43,50 @@ static void set_compress_params(ZSTD_CCtx* const ctx, VALUE level_from_args, VAL
   }
 }
 
+struct compress_params {
+  ZSTD_CCtx* ctx;
+  ZSTD_outBuffer* output;
+  ZSTD_inBuffer* input;
+  ZSTD_EndDirective endOp;
+  size_t ret;
+};
+
+static void* compress_wrapper(void* args)
+{
+    struct compress_params* params = args;
+    params->ret = ZSTD_compressStream2(params->ctx, params->output, params->input, params->endOp);
+    return NULL;
+}
+
+static size_t zstd_compress(ZSTD_CCtx* const ctx, ZSTD_outBuffer* output, ZSTD_inBuffer* input, ZSTD_EndDirective endOp)
+{
+#ifdef HAVE_RUBY_THREAD_H
+    struct compress_params params = { ctx, output, input, endOp };
+    rb_thread_call_without_gvl(compress_wrapper, &params, NULL, NULL);
+    return params.ret;
+#else
+    return ZSTD_compressStream2(ctx, output, input, endOp);
+#endif
+}
+
+static void set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)
+{
+  ID kwargs_keys[1];
+  kwargs_keys[0] = rb_intern("dict");
+  VALUE kwargs_values[1];
+  rb_get_kwargs(kwargs, kwargs_keys, 0, 1, kwargs_values);
+
+  if (kwargs_values[0] != Qundef && kwargs_values[0] != Qnil) {
+    char* dict_buffer = RSTRING_PTR(kwargs_values[0]);
+    size_t dict_size = RSTRING_LEN(kwargs_values[0]);
+    size_t load_dict_ret = ZSTD_DCtx_loadDictionary(dctx, dict_buffer, dict_size);
+    if (ZSTD_isError(load_dict_ret)) {
+      ZSTD_freeDCtx(dctx);
+      rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
+    }
+  }
+}
+
 struct decompress_params {
   ZSTD_DCtx* dctx;
   ZSTD_outBuffer* output;
@@ -92,24 +110,6 @@ static size_t zstd_decompress(ZSTD_DCtx* const dctx, ZSTD_outBuffer* output, ZST
 #else
     return ZSTD_decompressStream(dctx, output, input);
 #endif
-}
-
-static void set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)
-{
-  ID kwargs_keys[1];
-  kwargs_keys[0] = rb_intern("dict");
-  VALUE kwargs_values[1];
-  rb_get_kwargs(kwargs, kwargs_keys, 0, 1, kwargs_values);
-
-  if (kwargs_values[0] != Qundef && kwargs_values[0] != Qnil) {
-    char* dict_buffer = RSTRING_PTR(kwargs_values[0]);
-    size_t dict_size = RSTRING_LEN(kwargs_values[0]);
-    size_t load_dict_ret = ZSTD_DCtx_loadDictionary(dctx, dict_buffer, dict_size);
-    if (ZSTD_isError(load_dict_ret)) {
-      ZSTD_freeDCtx(dctx);
-      rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
-    }
-  }
 }
 
 #endif /* ZSTD_RUBY_H */

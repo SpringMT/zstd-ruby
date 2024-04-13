@@ -99,7 +99,7 @@ static VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t
     rb_str_resize(output_string, output.size);
     output.dst = RSTRING_PTR(output_string);
 
-    size_t ret = ZSTD_decompressStream(dctx, &output, &input);
+    size_t ret = zstd_decompress(dctx, &output, &input);
     if (ZSTD_isError(ret)) {
       ZSTD_freeDCtx(dctx);
       rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_decompressStream failed", ZSTD_getErrorName(ret));
