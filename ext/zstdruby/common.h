@@ -5,6 +5,7 @@
 #ifdef HAVE_RUBY_THREAD_H
 #include <ruby/thread.h>
 #endif
+#include <stdbool.h>
 #include "./libzstd/zstd.h"
 
 static int convert_compression_level(VALUE compression_level_value)
