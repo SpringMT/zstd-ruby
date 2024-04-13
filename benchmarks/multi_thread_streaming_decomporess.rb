@@ -4,7 +4,6 @@ require 'json'
 require 'objspace'
 require 'zstd-ruby'
 require 'thread'
-require "zstds"
 
 GUESSES = (ENV['GUESSES'] || 1000).to_i
 THREADS = (ENV['THREADS'] || 1).to_i
@@ -13,16 +12,17 @@ p GUESSES: GUESSES, THREADS: THREADS
 
 sample_file_name = ARGV[0]
 json_string = File.read("./samples/#{sample_file_name}")
+target = Zstd.compress(json_string)
 
 queue = Queue.new
-GUESSES.times { queue << json_string }
+GUESSES.times { queue << target }
 THREADS.times { queue << nil }
 THREADS.times.map {
   Thread.new {
     while str = queue.pop
-      stream = Zstd::StreamingCompress.new
-      stream << str
-      stream.finish
+      stream = Zstd::StreamingDecompress.new
+      stream.decompress(str)
+      stream.decompress(str)
     end
   }
 }.each(&:join)
