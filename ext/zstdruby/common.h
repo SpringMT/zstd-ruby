@@ -44,7 +44,7 @@ static void set_compress_params(ZSTD_CCtx* const ctx, VALUE level_from_args, VAL
   }
 }
 
-struct compress_params {
+struct stream_compress_params {
   ZSTD_CCtx* ctx;
   ZSTD_outBuffer* output;
   ZSTD_inBuffer* input;
@@ -52,21 +52,21 @@ struct compress_params {
   size_t ret;
 };
 
-static void* compress_wrapper(void* args)
+static void* stream_compress_wrapper(void* args)
 {
-    struct compress_params* params = args;
+    struct stream_compress_params* params = args;
     params->ret = ZSTD_compressStream2(params->ctx, params->output, params->input, params->endOp);
     return NULL;
 }
 
-static size_t zstd_compress(ZSTD_CCtx* const ctx, ZSTD_outBuffer* output, ZSTD_inBuffer* input, ZSTD_EndDirective endOp, bool gvl)
+static size_t zstd_stream_compress(ZSTD_CCtx* const ctx, ZSTD_outBuffer* output, ZSTD_inBuffer* input, ZSTD_EndDirective endOp, bool gvl)
 {
 #ifdef HAVE_RUBY_THREAD_H
     if (gvl) {
       return ZSTD_compressStream2(ctx, output, input, endOp);
     } else {
-      struct compress_params params = { ctx, output, input, endOp };
-      rb_thread_call_without_gvl(compress_wrapper, &params, NULL, NULL);
+      struct stream_compress_params params = { ctx, output, input, endOp };
+      rb_thread_call_without_gvl(stream_compress_wrapper, &params, NULL, NULL);
       return params.ret;
     }
 #else
