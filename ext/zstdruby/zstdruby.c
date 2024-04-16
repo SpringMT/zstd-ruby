@@ -141,7 +141,7 @@ static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
   if (ZSTD_isError(decompress_size)) {
     rb_raise(rb_eRuntimeError, "%s: %s", "decompress error", ZSTD_getErrorName(decompress_size));
   }
-
+  ZSTD_freeDCtx(dctx);
   return output;
 }
 
