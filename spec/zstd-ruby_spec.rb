@@ -40,6 +40,12 @@ RSpec.describe Zstd do
       expect(compressed_default.length).to be < compressed_with_arg.length
     end
 
+    it 'should compress large bytes' do
+      large_string = Random.bytes(1<<17 + 15)
+      compressed = Zstd.compress(large_string)
+      expect(Zstd.decompress(compressed)).to eq(large_string)
+    end
+
     it 'should raise exception with unsupported object' do
       expect { Zstd.compress(Object.new) }.to raise_error(TypeError)
     end
