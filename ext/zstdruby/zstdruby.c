@@ -25,22 +25,19 @@ static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
   StringValue(input_value);
   char* input_data = RSTRING_PTR(input_value);
   size_t input_size = RSTRING_LEN(input_value);
-  ZSTD_inBuffer input = { input_data, input_size, 0 };
-  // ZSTD_compressBound causes SEGV under multi-thread
-  size_t max_compressed_size = ZSTD_compressBound(input_size);
-  VALUE buf = rb_str_new(NULL, max_compressed_size);
-  char* output_data = RSTRING_PTR(buf);
-  ZSTD_outBuffer output = { (void*)output_data, max_compressed_size, 0 };
 
-  size_t const ret = zstd_compress(ctx, &output, &input, ZSTD_e_end, true);
+  size_t const max_compressed_size = ZSTD_compressBound(input_size);
+  VALUE output = rb_str_new(NULL, max_compressed_size);
+  const char* output_data = RSTRING_PTR(output);
+
+  size_t const ret = ZSTD_compress2(ctx,(void*)output_data, max_compressed_size, (void*)input_data, input_size);
   if (ZSTD_isError(ret)) {
-    ZSTD_freeCCtx(ctx);
-    rb_raise(rb_eRuntimeError, "%s: %s", "compress failed", ZSTD_getErrorName(ret));
+    rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
   }
-  VALUE result = rb_str_new(0, 0);
-  rb_str_cat(result, output.dst, output.pos);
+  rb_str_resize(output, ret);
+
   ZSTD_freeCCtx(ctx);
-  return result;
+  return output;
 }
 
 static VALUE rb_compress_using_dict(int argc, VALUE *argv, VALUE self)
