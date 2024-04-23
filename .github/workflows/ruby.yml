@@ -41,3 +41,11 @@ jobs:
       run: bundle exec rake compile
     - name: Run tests
       run: bundle exec rspec
+    - name: Run benchmarks
+      working-directory: benchmarks
+      run: |
+        time THREADS=4 bundle exec ruby multi_thread_comporess.rb city.json
+        time THREADS=4 bundle exec ruby multi_thread_decomporess.rb city.json
+        time THREADS=4 bundle exec ruby multi_thread_streaming_comporess.rb city.json
+        time THREADS=4 bundle exec ruby multi_thread_streaming_decomporess.rb city.json
+        bundle exec ruby large_bytes.rb
