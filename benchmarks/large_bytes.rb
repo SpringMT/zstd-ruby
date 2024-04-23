@@ -4,7 +4,7 @@ require 'securerandom'
 
 # source_data = ""
 # 512.times { source_data += SecureRandom.uuid }
-source_data =  Random.bytes(1<<17 + 15)
+source_data =  Random.bytes(1<<16 + 15)
 
 puts "source_data.size:#{source_data.size}"
 
