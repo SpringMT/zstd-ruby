@@ -2,9 +2,8 @@ $LOAD_PATH.unshift '../lib'
 require 'zstd-ruby'
 require 'securerandom'
 
-# source_data = ""
-# 512.times { source_data += SecureRandom.uuid }
-source_data =  Random.bytes(1<<16 + 15)
+# 1<<17 だと GitHub ActionsでOOMになる
+source_data =  Random.bytes(1<<16)
 
 puts "source_data.size:#{source_data.size}"
 
@@ -16,8 +15,5 @@ puts "source_data.size:#{source_data.size}"
   unless expanded_data == source_data
     puts "Error: expanded data does not match source data"
   end
-  # if i % 10 == 0
-    puts " - #{i}: c:#{compressed_data.size} e:#{expanded_data.size} memory:#{`ps -o rss= -p #{Process.pid}`.to_i}"
-  # end
-
+  puts " - #{i}: c:#{compressed_data.size} e:#{expanded_data.size} memory:#{`ps -o rss= -p #{Process.pid}`.to_i}"
 end
