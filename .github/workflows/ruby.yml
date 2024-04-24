@@ -43,8 +43,8 @@ jobs:
       working-directory: benchmarks
       run: |
         bundle install
-        THREADS=4 /usr/bin/time -f "command %C\nreal %e\nuser %U\nsys %S" bundle exec ruby multi_thread_comporess.rb city.json
-        THREADS=4 /usr/bin/time -f "command %C\nreal %e\nuser %U\nsys %S" bundle exec ruby multi_thread_decomporess.rb city.json
-        THREADS=4 /usr/bin/time -f "command %C\nreal %e\nuser %U\nsys %S" bundle exec ruby multi_thread_streaming_comporess.rb city.json
-        THREADS=4 /usr/bin/time -f "command %C\nreal %e\nuser %U\nsys %S" bundle exec ruby multi_thread_streaming_decomporess.rb city.json
+        THREADS=4 /usr/bin/time -f "command %C\treal %e\tuser %U\tsys %S\tCPU %P" bundle exec ruby multi_thread_comporess.rb city.json
+        THREADS=4 /usr/bin/time -f "command %C\treal %e\tuser %U\tsys %S\tCPU %P" bundle exec ruby multi_thread_decomporess.rb city.json
+        THREADS=4 /usr/bin/time -f "command %C\treal %e\tuser %U\tsys %S\tCPU %P" bundle exec ruby multi_thread_streaming_comporess.rb city.json
+        THREADS=4 /usr/bin/time -f "command %C\treal %e\tuser %U\tsys %S\tCPU %P" bundle exec ruby multi_thread_streaming_decomporess.rb city.json
         bundle exec ruby large_bytes.rb
