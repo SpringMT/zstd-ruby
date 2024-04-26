@@ -136,7 +136,7 @@ Zstd.read_skippable_frame(compressed_data_with_skippable_frame)
 
 #### Zstd::StreamWriter
 
-```
+```ruby
 require 'stringio'
 require 'zstd-ruby'
 
@@ -152,7 +152,7 @@ compressed_data = io.read
 
 #### Zstd::StreamReader
 
-```
+```ruby
 require 'stringio'
 require 'zstd-ruby' # Add the appropriate require statement if necessary
 
@@ -162,7 +162,7 @@ reader = Zstd::StreamReader.new(io)
 # Read and output the decompressed data
 puts reader.read(10)  # 'abc'
 puts reader.read(10)  # 'def'
-puts reader.read(10) # '' (end of data)
+puts reader.read(10)  # '' (end of data)
 ```
 
 
