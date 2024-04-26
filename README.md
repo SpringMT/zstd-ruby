@@ -127,6 +127,45 @@ Zstd.read_skippable_frame(compressed_data_with_skippable_frame)
 # => "sample data"
 ```
 
+### Stream Writer and Reader Wrapper
+** EXPERIMENTAL *
+
+* These features are experimental and may be subject to API changes in future releases.
+* There may be performance and compatibility issues, so extensive testing is required before production use.
+* If you have any questions, encounter bugs, or have suggestions, please report them via [GitHub issues](https://github.com/SpringMT/zstd-ruby/issues).
+
+#### Zstd::StreamWriter
+
+```
+require 'stringio'
+require 'zstd-ruby'
+
+io = StringIO.new
+stream = Zstd::StreamWriter.new(io)
+stream.write("abc")
+stream.finish
+
+io.rewind
+# Retrieve the compressed data
+compressed_data = io.read
+```
+
+#### Zstd::StreamReader
+
+```
+require 'stringio'
+require 'zstd-ruby' # Add the appropriate require statement if necessary
+
+io = StringIO.new(compressed_data)
+reader = Zstd::StreamReader.new(io)
+
+# Read and output the decompressed data
+puts reader.read(10)  # 'abc'
+puts reader.read(10)  # 'def'
+puts reader.read(10) # '' (end of data)
+```
+
+
 ## JRuby
 This gem does not support JRuby.
 

@@ -1,6 +1,5 @@
 require "spec_helper"
 require 'zstd-ruby'
-require 'zstd-ruby/stream_writer'
 
 RSpec.describe Zstd::StreamWriter do
   describe 'write' do
