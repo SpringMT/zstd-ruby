@@ -1,7 +1,5 @@
 require "spec_helper"
 require 'zstd-ruby'
-require 'zstd-ruby/stream_writer'
-require 'zstd-ruby/stream_reader'
 require 'pry'
 
 RSpec.describe Zstd::StreamReader do
