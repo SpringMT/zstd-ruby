@@ -128,7 +128,7 @@ Zstd.read_skippable_frame(compressed_data_with_skippable_frame)
 ```
 
 ### Stream Writer and Reader Wrapper
-** EXPERIMENTAL *
+**EXPERIMENTAL**
 
 * These features are experimental and may be subject to API changes in future releases.
 * There may be performance and compatibility issues, so extensive testing is required before production use.
