@@ -27,9 +27,6 @@ Hardware:
       Memory: 24 GB
       System Firmware Version: 8422.100.650
       OS Loader Version: 7459.141.1
-      Serial Number (system): V90G2M34LL
-      Hardware UUID: C9914E86-7CF2-5927-92F9-EE062FB87913
-      Provisioning UDID: 00008112-000205A22E31401E
       Activation Lock Status: Disabled
 ```
 ### Compression
