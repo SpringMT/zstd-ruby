@@ -87,6 +87,14 @@ RSpec.describe Zstd do
       expect(decompressed.force_encoding('UTF-8')).to eq('あああ')
     end
 
+    it 'should work hash equal streaming compress' do
+      simple_compressed = Zstd.compress('あ')
+      stream = Zstd::StreamingCompress.new
+      stream << "あ"
+      streaming_compressed = stream.finish
+      expect(Zstd.decompress(simple_compressed).force_encoding('UTF-8').hash).to eq(Zstd.decompress(streaming_compressed).force_encoding('UTF-8').hash)
+    end
+
     it 'should raise exception with unsupported object' do
       expect { Zstd.decompress(Object.new) }.to raise_error(TypeError)
     end
@@ -111,4 +119,3 @@ RSpec.describe Zstd do
     end
   end
 end
-
