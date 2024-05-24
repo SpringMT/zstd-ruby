@@ -88,23 +88,22 @@ static VALUE rb_compress_using_dict(int argc, VALUE *argv, VALUE self)
 static VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t input_size)
 {
   ZSTD_inBuffer input = { input_data, input_size, 0 };
-  VALUE result = rb_str_new(0, 0);
-
+  size_t const buffOutSize = ZSTD_DStreamOutSize();
+  VALUE output_string = rb_str_buf_new(buffOutSize);
+  ZSTD_outBuffer output = { RSTRING_PTR(output_string), buffOutSize, 0 };
   while (input.pos < input.size) {
-    ZSTD_outBuffer output = { NULL, 0, 0 };
-    output.size += ZSTD_DStreamOutSize();
-    VALUE output_string = rb_str_new(NULL, output.size);
-    output.dst = RSTRING_PTR(output_string);
-
     size_t ret = zstd_stream_decompress(dctx, &output, &input, false);
     if (ZSTD_isError(ret)) {
       ZSTD_freeDCtx(dctx);
       rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_decompressStream failed", ZSTD_getErrorName(ret));
     }
-    rb_str_cat(result, output.dst, output.pos);
+    rb_str_modify_expand(output_string, buffOutSize);
+    output.dst = RSTRING_PTR(output_string) + output.size;
+    output.size += buffOutSize;
   }
+  rb_str_set_len(output_string, output.pos);
   ZSTD_freeDCtx(dctx);
-  return result;
+  return output_string;
 }
 
 static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
