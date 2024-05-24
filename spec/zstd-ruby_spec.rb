@@ -95,6 +95,17 @@ RSpec.describe Zstd do
       expect(Zstd.decompress(simple_compressed).force_encoding('UTF-8').hash).to eq(Zstd.decompress(streaming_compressed).force_encoding('UTF-8').hash)
     end
 
+    it 'shoud work with large streaming compress data' do
+      large_strings = Random.bytes(1<<16)
+      stream = Zstd::StreamingCompress.new
+      res = stream.compress(large_strings)
+      res << stream.flush
+      res << stream.compress(large_strings)
+      res << stream.compress(large_strings)
+      res << stream.finish
+      expect(Zstd.decompress(res)).to eq(large_strings * 3)
+    end
+
     it 'should raise exception with unsupported object' do
       expect { Zstd.decompress(Object.new) }.to raise_error(TypeError)
     end
