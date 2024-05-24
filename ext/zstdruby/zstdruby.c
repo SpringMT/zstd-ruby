@@ -98,8 +98,7 @@ static VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t
       rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_decompressStream failed", ZSTD_getErrorName(ret));
     }
     rb_str_modify_expand(output_string, buffOutSize);
-    output.dst = RSTRING_PTR(output_string) + output.size;
-    output.size += buffOutSize;
+    output.dst = output.dst + output.size;
   }
   rb_str_set_len(output_string, output.pos);
   ZSTD_freeDCtx(dctx);
