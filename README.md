@@ -3,18 +3,20 @@
 
 # zstd-ruby
 
-Ruby binding for zstd(Zstandard - Fast real-time compression algorithm)
+Ruby binding for zstd (Zstandard), a fast real-time compression algorithm
 
-See https://github.com/facebook/zstd
+For more information about the algorithm:
 
-Fork from https://github.com/jarredholman/ruby-zstd.
+- https://github.com/facebook/zstd
+- https://en.wikipedia.org/wiki/Zstd
 
 ## Zstd version
-[v1.5.6](https://github.com/facebook/zstd/tree/v1.5.6)
+
+This gem is currently using the [v1.5.6](https://github.com/facebook/zstd/tree/v1.5.6) version of zstd.
 
 ## Installation
 
-Add this line to your application's Gemfile:
+Add this line to your Gemfile:
 
 ```ruby
 gem 'zstd-ruby'
@@ -22,11 +24,9 @@ gem 'zstd-ruby'
 
 And then execute:
 
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install zstd-ruby
+```sh
+$ bundle install
+```
 
 ## Usage
 
@@ -165,31 +165,11 @@ puts reader.read(10)  # 'def'
 puts reader.read(10)  # '' (end of data)
 ```
 
-
 ## JRuby
+
 This gem does not support JRuby.
 
 Please consider using https://github.com/luben/zstd-jni.
-
-Sample code is below.
-
-```
-require 'java'
-require_relative './zstd-jni-1.5.2-3.jar'
-
-str = "testtest"
-compressed = com.github.luben.zstd.Zstd.compress(str.to_java_bytes)
-puts com.github.luben.zstd.Zstd.decompress(compressed, str.length)
-```
-
-```
-% ls
-test.rb              zstd-jni-1.5.2-3.jar
-% ruby -v
-jruby 9.3.2.0 (2.6.8) 2021-12-01 0b8223f905 OpenJDK 64-Bit Server VM 11.0.12+0 on 11.0.12+0 +jit [darwin-x86_64]
-% ruby test.rb
-testtest
-```
 
 ## Development
 
@@ -201,6 +181,9 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/SpringMT/zstd-ruby. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
+## Credits
+
+This library was originally forked off from https://github.com/jarredholman/ruby-zstd.
 
 ## License
 
