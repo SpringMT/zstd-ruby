@@ -13,4 +13,14 @@ RSpec.describe Zstd::StreamWriter do
       expect(Zstd.decompress(io.read)).to eq('abcdef')
     end
   end
+  describe 'level' do
+    it 'should work' do
+      io = StringIO.new
+      stream = Zstd::StreamWriter.new(io, level: 5)
+      stream.write("abcdef")
+      stream.finish
+      io.rewind
+      expect(Zstd.decompress(io.read)).to eq('abcdef')
+    end
+  end
 end

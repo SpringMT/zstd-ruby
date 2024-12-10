@@ -3,7 +3,7 @@ module Zstd
   class StreamWriter
     def initialize(io, level: nil)
       @io = io
-      @stream = Zstd::StreamingCompress.new(level)
+      @stream = Zstd::StreamingCompress.new(level: level)
     end
 
     def write(*data)
