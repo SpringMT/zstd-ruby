@@ -8,6 +8,8 @@
 #include <stdbool.h>
 #include "./libzstd/zstd.h"
 
+extern VALUE rb_cCDict, rb_cDDict;
+
 static int convert_compression_level(VALUE compression_level_value)
 {
   if (NIL_P(compression_level_value)) {
@@ -34,12 +36,24 @@ static void set_compress_params(ZSTD_CCtx* const ctx, VALUE level_from_args, VAL
   ZSTD_CCtx_setParameter(ctx, ZSTD_c_compressionLevel, compression_level);
 
   if (kwargs_values[1] != Qundef && kwargs_values[1] != Qnil) {
-    char* dict_buffer = RSTRING_PTR(kwargs_values[1]);
-    size_t dict_size = RSTRING_LEN(kwargs_values[1]);
-    size_t load_dict_ret = ZSTD_CCtx_loadDictionary(ctx, dict_buffer, dict_size);
-    if (ZSTD_isError(load_dict_ret)) {
+    if (CLASS_OF(kwargs_values[1]) == rb_cCDict) {
+      ZSTD_CDict* cdict = DATA_PTR(kwargs_values[1]);
+      size_t ref_dict_ret = ZSTD_CCtx_refCDict(ctx, cdict);
+      if (ZSTD_isError(ref_dict_ret)) {
+        ZSTD_freeCCtx(ctx);
+        rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_refCDict failed");
+      }
+    } else if (TYPE(kwargs_values[1]) == T_STRING) {
+      char* dict_buffer = RSTRING_PTR(kwargs_values[1]);
+      size_t dict_size = RSTRING_LEN(kwargs_values[1]);
+      size_t load_dict_ret = ZSTD_CCtx_loadDictionary(ctx, dict_buffer, dict_size);
+      if (ZSTD_isError(load_dict_ret)) {
+        ZSTD_freeCCtx(ctx);
+        rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
+      }
+    } else {
       ZSTD_freeCCtx(ctx);
-      rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
+      rb_raise(rb_eArgError, "`dict:` must be a Zstd::CDict or a String");
     }
   }
 }
@@ -113,12 +127,24 @@ static void set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)
   rb_get_kwargs(kwargs, kwargs_keys, 0, 1, kwargs_values);
 
   if (kwargs_values[0] != Qundef && kwargs_values[0] != Qnil) {
-    char* dict_buffer = RSTRING_PTR(kwargs_values[0]);
-    size_t dict_size = RSTRING_LEN(kwargs_values[0]);
-    size_t load_dict_ret = ZSTD_DCtx_loadDictionary(dctx, dict_buffer, dict_size);
-    if (ZSTD_isError(load_dict_ret)) {
+    if (CLASS_OF(kwargs_values[0]) == rb_cDDict) {
+      ZSTD_DDict* ddict = DATA_PTR(kwargs_values[0]);
+      size_t ref_dict_ret = ZSTD_DCtx_refDDict(dctx, ddict);
+      if (ZSTD_isError(ref_dict_ret)) {
+        ZSTD_freeDCtx(dctx);
+        rb_raise(rb_eRuntimeError, "%s", "ZSTD_DCtx_refDDict failed");
+      }
+    } else if (TYPE(kwargs_values[0]) == T_STRING) {
+      char* dict_buffer = RSTRING_PTR(kwargs_values[0]);
+      size_t dict_size = RSTRING_LEN(kwargs_values[0]);
+      size_t load_dict_ret = ZSTD_DCtx_loadDictionary(dctx, dict_buffer, dict_size);
+      if (ZSTD_isError(load_dict_ret)) {
+        ZSTD_freeDCtx(dctx);
+        rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
+      }
+    } else {
       ZSTD_freeDCtx(dctx);
-      rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
+      rb_raise(rb_eArgError, "`dict:` must be a Zstd::DDict or a String");
     }
   }
 }
