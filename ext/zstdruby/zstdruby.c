@@ -195,6 +195,90 @@ static VALUE rb_decompress_using_dict(int argc, VALUE *argv, VALUE self)
   return output;
 }
 
+static void free_cdict(void *dict)
+{
+  ZSTD_freeCDict(dict);
+}
+
+static size_t sizeof_cdict(const void *dict)
+{
+  return ZSTD_sizeof_CDict(dict);
+}
+
+static void free_ddict(void *dict)
+{
+  ZSTD_freeDDict(dict);
+}
+
+static size_t sizeof_ddict(const void *dict)
+{
+  return ZSTD_sizeof_DDict(dict);
+}
+
+static const rb_data_type_t cdict_type = {
+  "Zstd::CDict",
+  {0, free_cdict, sizeof_cdict,},
+  0, 0, RUBY_TYPED_FREE_IMMEDIATELY
+};
+
+static const rb_data_type_t ddict_type = {
+  "Zstd::DDict",
+  {0, free_ddict, sizeof_ddict,},
+  0, 0, RUBY_TYPED_FREE_IMMEDIATELY
+};
+
+static VALUE rb_cdict_alloc(VALUE self)
+{
+  ZSTD_CDict* cdict = NULL;
+  return TypedData_Wrap_Struct(self, &cdict_type, cdict);
+}
+
+static VALUE rb_cdict_initialize(int argc, VALUE *argv, VALUE self)
+{
+  VALUE dict;
+  VALUE compression_level_value;
+  rb_scan_args(argc, argv, "11", &dict, &compression_level_value);
+  int compression_level = convert_compression_level(compression_level_value);
+
+  StringValue(dict);
+  char* dict_buffer = RSTRING_PTR(dict);
+  size_t dict_size = RSTRING_LEN(dict);
+
+  ZSTD_CDict* const cdict = ZSTD_createCDict(dict_buffer, dict_size, compression_level);
+  if (cdict == NULL) {
+    rb_raise(rb_eRuntimeError, "%s", "ZSTD_createCDict failed");
+  }
+
+  DATA_PTR(self) = cdict;
+  return self;
+}
+
+static VALUE rb_ddict_alloc(VALUE self)
+{
+  ZSTD_CDict* ddict = NULL;
+  return TypedData_Wrap_Struct(self, &ddict_type, ddict);
+}
+
+static VALUE rb_ddict_initialize(VALUE self, VALUE dict)
+{
+  StringValue(dict);
+  char* dict_buffer = RSTRING_PTR(dict);
+  size_t dict_size = RSTRING_LEN(dict);
+
+  ZSTD_DDict* const ddict = ZSTD_createDDict(dict_buffer, dict_size);
+  if (ddict == NULL) {
+    rb_raise(rb_eRuntimeError, "%s", "ZSTD_createDDict failed");
+  }
+
+  DATA_PTR(self) = ddict;
+  return self;
+}
+
+static VALUE rb_prohibit_copy(VALUE, VALUE)
+{
+  rb_raise(rb_eRuntimeError, "CDict cannot be duplicated");
+}
+
 void
 zstd_ruby_init(void)
 {
@@ -203,4 +287,12 @@ zstd_ruby_init(void)
   rb_define_module_function(rb_mZstd, "compress_using_dict", rb_compress_using_dict, -1);
   rb_define_module_function(rb_mZstd, "decompress", rb_decompress, -1);
   rb_define_module_function(rb_mZstd, "decompress_using_dict", rb_decompress_using_dict, -1);
+
+  rb_define_alloc_func(rb_cCDict, rb_cdict_alloc);
+  rb_define_private_method(rb_cCDict, "initialize", rb_cdict_initialize, -1);
+  rb_define_method(rb_cCDict, "initialize_copy", rb_prohibit_copy, 1);
+
+  rb_define_alloc_func(rb_cDDict, rb_ddict_alloc);
+  rb_define_private_method(rb_cDDict, "initialize", rb_ddict_initialize, 1);
+  rb_define_method(rb_cDDict, "initialize_copy", rb_prohibit_copy, 1);
 }

@@ -49,6 +49,22 @@ compressed_data = Zstd.compress(data, level: complession_level) # default compre
 compressed_using_dict = Zstd.compress("", dict: File.read('dictionary_file'))
 ```
 
+#### Compression with CDict
+
+If you use the same dictionary repeatedly, you can speed up the setup by creating CDict in advance:
+
+```ruby
+cdict = Zstd::CDict.new(File.read('dictionary_file'))
+compressed_using_dict = Zstd.compress("", dict: cdict)
+```
+
+The compression_level can be specified on creating CDict.
+
+```ruby
+cdict = Zstd::CDict.new(File.read('dictionary_file'), 5)
+compressed_using_dict = Zstd.compress("", dict: cdict)
+```
+
 #### Streaming Compression
 ```ruby
 stream = Zstd::StreamingCompress.new
@@ -86,6 +102,16 @@ stream << "ghi"
 res << stream.finish
 ```
 
+#### Streaming Compression with CDict of level 5
+```ruby
+cdict = Zstd::CDict.new(File.read('dictionary_file', 5)
+stream = Zstd::StreamingCompress.new(dict: cdict)
+stream << "abc" << "def"
+res = stream.flush
+stream << "ghi"
+res << stream.finish
+```
+
 ### Decompression
 
 #### Simple Decompression
@@ -98,6 +124,15 @@ data = Zstd.decompress(compressed_data)
 ```ruby
 # dictionary is supposed to have been created using `zstd --train`
 Zstd.decompress(compressed_using_dict, dict: File.read('dictionary_file'))
+```
+
+#### Decompression with DDict
+
+If you use the same dictionary repeatedly, you can speed up the setup by creating DDict in advance:
+
+```ruby
+cdict = Zstd::CDict.new(File.read('dictionary_file'))
+compressed_using_dict = Zstd.compress(compressed_using_dict, ddict)
 ```
 
 #### Streaming Decompression
@@ -117,6 +152,8 @@ result = ''
 result << stream.decompress(cstr[0, 10])
 result << stream.decompress(cstr[10..-1])
 ```
+
+DDict can also be specified to `dict:`.
 
 ### Skippable frame
 

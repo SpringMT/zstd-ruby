@@ -32,7 +32,7 @@ RSpec.describe Zstd::StreamingDecompress do
     end
   end
 
-  describe 'dictionary streaming decompress + GC.compact' do
+  describe 'String dictionary streaming decompress + GC.compact' do
     let(:dictionary) do
       File.read("#{__dir__}/dictionary")
     end
@@ -42,6 +42,28 @@ RSpec.describe Zstd::StreamingDecompress do
     it 'shoud work' do
       compressed_json = Zstd.compress(user_json, dict: dictionary)
       stream = Zstd::StreamingDecompress.new(dict: dictionary)
+      result = ''
+      result << stream.decompress(compressed_json[0, 5])
+      result << stream.decompress(compressed_json[5, 5])
+      GC.compact
+      result << stream.decompress(compressed_json[10..-1])
+      expect(result).to eq(user_json)
+    end
+  end
+
+  describe 'Zstd::DDict dictionary streaming decompress + GC.compact' do
+    let(:dictionary) do
+      File.read("#{__dir__}/dictionary")
+    end
+    let(:ddict) do
+      Zstd::DDict.new(dictionary)
+    end
+    let(:user_json) do
+      File.read("#{__dir__}/user_springmt.json")
+    end
+    it 'shoud work' do
+      compressed_json = Zstd.compress(user_json, dict: dictionary)
+      stream = Zstd::StreamingDecompress.new(dict: ddict)
       result = ''
       result << stream.decompress(compressed_json[0, 5])
       result << stream.decompress(compressed_json[5, 5])

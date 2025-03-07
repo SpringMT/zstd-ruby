@@ -7,7 +7,7 @@ require 'securerandom'
 # https://github.com/facebook/zstd/releases/tag/v1.1.3
 
 RSpec.describe Zstd do
-  describe 'compress and decompress with dict keyward args' do
+  describe 'compress and decompress with String dict keyward args' do
     let(:user_json) do
       File.read("#{__dir__}/user_springmt.json")
     end
@@ -49,6 +49,42 @@ RSpec.describe Zstd do
       compressed_using_dict_10 = Zstd.compress(user_json, dict: "", level: 10)
       expect(user_json).to eq(Zstd.decompress(compressed_using_dict_10, dict: ""))
       expect(user_json).to eq(Zstd.decompress(compressed_using_dict_10))
+    end
+  end
+
+  describe 'compress and decompress with Zstd::CDict and Zstd::DDict dict keyward args' do
+    let(:user_json) do
+      File.read("#{__dir__}/user_springmt.json")
+    end
+    let(:cdict) do
+      Zstd::CDict.new(File.read("#{__dir__}/dictionary"))
+    end
+    let(:cdict_10) do
+      Zstd::CDict.new(File.read("#{__dir__}/dictionary"), 10)
+    end
+    let(:ddict) do
+      Zstd::DDict.new(File.read("#{__dir__}/dictionary"))
+    end
+
+    it 'should work' do
+      compressed_using_dict = Zstd.compress(user_json, dict: cdict)
+      compressed = Zstd.compress(user_json)
+      expect(compressed_using_dict.length).to be < compressed.length
+      expect(user_json).to eq(Zstd.decompress(compressed_using_dict, dict: ddict))
+    end
+
+    it 'should be able to use dictionary multiple times' do
+      compressed_using_dict = Zstd.compress(user_json, dict: cdict)
+      expect(compressed_using_dict).to eq(Zstd.compress(user_json, dict: cdict))
+      expect(user_json).to eq(Zstd.decompress(compressed_using_dict, dict: ddict))
+      expect(user_json).to eq(Zstd.decompress(compressed_using_dict, dict: ddict))
+    end
+
+    it 'should support compression levels' do
+      compressed_using_dict    = Zstd.compress(user_json, dict: cdict)
+      compressed_using_dict_10 = Zstd.compress(user_json, dict: cdict_10)
+      expect(compressed_using_dict_10.length).to be < compressed_using_dict.length
+      expect(user_json).to eq(Zstd.decompress(compressed_using_dict_10, dict: ddict))
     end
   end
 
