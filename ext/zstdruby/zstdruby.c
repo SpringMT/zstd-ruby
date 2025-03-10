@@ -274,7 +274,7 @@ static VALUE rb_ddict_initialize(VALUE self, VALUE dict)
   return self;
 }
 
-static VALUE rb_prohibit_copy(VALUE, VALUE)
+static VALUE rb_prohibit_copy(VALUE self, VALUE obj)
 {
   rb_raise(rb_eRuntimeError, "CDict cannot be duplicated");
 }
