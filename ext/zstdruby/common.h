@@ -1,11 +1,11 @@
 #ifndef ZSTD_RUBY_H
 #define ZSTD_RUBY_H 1
 
+#include <stdbool.h>
 #include <ruby.h>
 #ifdef HAVE_RUBY_THREAD_H
 #include <ruby/thread.h>
 #endif
-#include <stdbool.h>
 #include "./libzstd/zstd.h"
 
 extern VALUE rb_cCDict, rb_cDDict;
