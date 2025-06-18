@@ -131,8 +131,8 @@ Zstd.decompress(compressed_using_dict, dict: File.read('dictionary_file'))
 If you use the same dictionary repeatedly, you can speed up the setup by creating DDict in advance:
 
 ```ruby
-cdict = Zstd::CDict.new(File.read('dictionary_file'))
-compressed_using_dict = Zstd.compress(compressed_using_dict, ddict)
+ddict = Zstd::Ddict.new(File.read('dictionary_file'))
+data = Zstd.compress(compressed_using_dict, ddict)
 ```
 
 #### Streaming Decompression
