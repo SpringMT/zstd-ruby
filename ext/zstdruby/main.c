@@ -8,7 +8,7 @@ void zstd_ruby_skippable_frame_init(void);
 void zstd_ruby_streaming_compress_init(void);
 void zstd_ruby_streaming_decompress_init(void);
 
-void
+RUBY_FUNC_EXPORTED void
 Init_zstdruby(void)
 {
 #ifdef HAVE_RB_EXT_RACTOR_SAFE
