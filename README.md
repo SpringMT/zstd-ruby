@@ -12,6 +12,20 @@ Fork from https://github.com/jarredholman/ruby-zstd.
 ## Zstd version
 [v1.5.7](https://github.com/facebook/zstd/tree/v1.5.7)
 
+## Versioning Policy
+
+Starting from v2.0.0, this gem follows Semantic Versioning.
+
+- **Major version** (X.0.0): Breaking changes to the API
+- **Minor version** (X.Y.0): New features, including Zstd library version updates
+- **Patch version** (X.Y.Z): Bug fixes and other backward-compatible changes
+
+### Zstd Library Updates
+
+Updates to the underlying Zstd library version will be released as **minor version** updates, as they may introduce new features or performance improvements while maintaining backward compatibility.
+
+**Note**: Versions prior to v2.0.0 followed the Zstd library versioning scheme with an additional patch number (e.g., 1.5.6.2). This approach has been replaced with semantic versioning to provide clearer expectations for API stability.
+
 ## Installation
 
 Add this line to your application's Gemfile:
