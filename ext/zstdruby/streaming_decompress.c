@@ -114,7 +114,7 @@ rb_streaming_decompress_decompress(VALUE obj, VALUE src)
 }
 
 static VALUE
-rb_streaming_decompress_decompress2(VALUE obj, VALUE src)
+rb_streaming_decompress_decompress_with_pos(VALUE obj, VALUE src)
 {
   StringValue(src);
   const char* input_data = RSTRING_PTR(src);
@@ -131,7 +131,7 @@ rb_streaming_decompress_decompress2(VALUE obj, VALUE src)
     rb_raise(rb_eRuntimeError, "decompress error error code: %s", ZSTD_getErrorName(ret));
   }
   rb_str_cat(result, output.dst, output.pos);
-  return rb_ary_new_from_args(3, UINT2NUM(ret), result, ULONG2NUM(input.pos));
+  return rb_ary_new_from_args(2, result, ULONG2NUM(input.pos));
 }
 
 extern VALUE rb_mZstd, cStreamingDecompress;
@@ -142,5 +142,5 @@ zstd_ruby_streaming_decompress_init(void)
   rb_define_alloc_func(cStreamingDecompress, rb_streaming_decompress_allocate);
   rb_define_method(cStreamingDecompress, "initialize", rb_streaming_decompress_initialize, -1);
   rb_define_method(cStreamingDecompress, "decompress", rb_streaming_decompress_decompress, 1);
-  rb_define_method(cStreamingDecompress, "decompress2", rb_streaming_decompress_decompress2, 1);
+  rb_define_method(cStreamingDecompress, "decompress_with_pos", rb_streaming_decompress_decompress_with_pos, 1);
 }

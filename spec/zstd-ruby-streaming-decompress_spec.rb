@@ -17,6 +17,71 @@ RSpec.describe Zstd::StreamingDecompress do
     end
   end
 
+  describe 'decompress_with_pos' do
+    it 'should return decompressed data and consumed input position' do
+      str = "hello world test data"
+      cstr = Zstd.compress(str)
+      stream = Zstd::StreamingDecompress.new
+      
+      # Test with partial input
+      result_array = stream.decompress_with_pos(cstr[0, 10])
+      expect(result_array).to be_an(Array)
+      expect(result_array.length).to eq(2)
+      
+      decompressed_data = result_array[0]
+      consumed_bytes = result_array[1]
+      
+      expect(decompressed_data).to be_a(String)
+      expect(consumed_bytes).to be_a(Integer)
+      expect(consumed_bytes).to be > 0
+      expect(consumed_bytes).to be <= 10
+    end
+
+    it 'should work with complete compressed data' do
+      str = "foo bar buzz"
+      cstr = Zstd.compress(str)
+      stream = Zstd::StreamingDecompress.new
+      
+      result_array = stream.decompress_with_pos(cstr)
+      decompressed_data = result_array[0]
+      consumed_bytes = result_array[1]
+      
+      expect(decompressed_data).to eq(str)
+      expect(consumed_bytes).to eq(cstr.length)
+    end
+
+    it 'should work with multiple calls' do
+      str = "test data for multiple calls"
+      cstr = Zstd.compress(str)
+      stream = Zstd::StreamingDecompress.new
+      
+      result = ''
+      total_consumed = 0
+      chunk_size = 5
+      
+      while total_consumed < cstr.length
+        remaining_data = cstr[total_consumed..-1]
+        chunk = remaining_data[0, chunk_size]
+        
+        result_array = stream.decompress_with_pos(chunk)
+        decompressed_chunk = result_array[0]
+        consumed_bytes = result_array[1]
+        
+        result << decompressed_chunk
+        total_consumed += consumed_bytes
+        
+        expect(consumed_bytes).to be > 0
+        expect(consumed_bytes).to be <= chunk.length
+        
+        # If we consumed less than the chunk size, we might be done or need more data
+        break if consumed_bytes < chunk.length && total_consumed == cstr.length
+      end
+      
+      expect(result).to eq(str)
+      expect(total_consumed).to eq(cstr.length)
+    end
+  end
+
   describe 'streaming decompress + GC.compact' do
     it 'shoud work' do
       # str = SecureRandom.hex(150)
@@ -109,4 +174,3 @@ RSpec.describe Zstd::StreamingDecompress do
     end
   end
 end
-
