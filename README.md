@@ -169,6 +169,20 @@ result << stream.decompress(cstr[10..-1])
 
 DDict can also be specified to `dict:`.
 
+#### Streaming Decompression with Position Tracking
+
+If you need to know how much of the input data was consumed during decompression, you can use the `decompress_with_pos` method:
+
+```ruby
+cstr = "" # Compressed data
+stream = Zstd::StreamingDecompress.new
+result, consumed_bytes = stream.decompress_with_pos(cstr[0, 10])
+# result contains the decompressed data
+# consumed_bytes contains the number of bytes from input that were processed
+```
+
+This is particularly useful when processing streaming data where you need to track the exact position in the input stream.
+
 ### Skippable frame
 
 ```ruby
