@@ -71,8 +71,7 @@ static VALUE
 rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
 {
   VALUE kwargs;
-  VALUE compression_level_value;
-  rb_scan_args(argc, argv, "01:", &compression_level_value, &kwargs);
+  rb_scan_args(argc, argv, "00:", &kwargs);
 
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
@@ -82,7 +81,7 @@ rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
   if (ctx == NULL) {
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createCCtx error");
   }
-  set_compress_params(ctx, compression_level_value, kwargs);
+  set_compress_params(ctx, kwargs);
 
   sc->ctx = ctx;
   sc->buf = rb_str_new(NULL, buffOutSize);
