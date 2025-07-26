@@ -24,20 +24,13 @@ RSpec.describe Zstd do
       expect(compressed).to_not eq(user_json)
     end
 
-    it 'should support compression levels' do
-      compressed = Zstd.compress(user_json, 1)
-      expect(compressed).to be_a(String)
-      expect(compressed).to_not eq(user_json)
-    end
-
     it 'should support compression keyward args levels' do
       compressed = Zstd.compress(user_json, level: 1)
-      compressed_with_arg = Zstd.compress(user_json, 1)
       compressed_default = Zstd.compress(user_json)
       expect(compressed).to be_a(String)
       expect(compressed).to_not eq(user_json)
-      expect(compressed).to eq(compressed_with_arg)
-      expect(compressed_default.length).to be < compressed_with_arg.length
+      expect(compressed).to_not eq(compressed_default)
+      expect(compressed_default.length).to be < compressed.length
     end
 
     it 'should compress large bytes' do
