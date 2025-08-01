@@ -18,7 +18,7 @@ static int convert_compression_level(VALUE compression_level_value)
   return NUM2INT(compression_level_value);
 }
 
-static void set_compress_params(ZSTD_CCtx* const ctx, VALUE level_from_args, VALUE kwargs)
+static void set_compress_params(ZSTD_CCtx* const ctx, VALUE kwargs)
 {
   ID kwargs_keys[2];
   kwargs_keys[0] = rb_intern("level");
@@ -29,9 +29,6 @@ static void set_compress_params(ZSTD_CCtx* const ctx, VALUE level_from_args, VAL
   int compression_level = ZSTD_CLEVEL_DEFAULT;
   if (kwargs_values[0] != Qundef && kwargs_values[0] != Qnil) {
     compression_level = convert_compression_level(kwargs_values[0]);
-  } else if (!NIL_P(level_from_args)) {
-    rb_warn("`level` in args is deprecated; use keyword args `level:` instead.");
-    compression_level = convert_compression_level(level_from_args);
   }
   ZSTD_CCtx_setParameter(ctx, ZSTD_c_compressionLevel, compression_level);
 
