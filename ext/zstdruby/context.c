@@ -21,7 +21,7 @@ static VALUE rb_cZstdCContext;
 static VALUE rb_cZstdDContext;
 
 // Forward declaration of decompress_buffered from zstdruby.c
-extern VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t input_size);
+extern VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t input_size, bool free_ctx);
 
 // CContext (compression-only) implementation
 static void zstd_ccontext_mark(void *ptr)
@@ -275,10 +275,10 @@ static VALUE zstd_dcontext_decompress(VALUE self, VALUE input_value)
     rb_raise(rb_eRuntimeError, "Not compressed by zstd: %s", ZSTD_getErrorName(uncompressed_size));
   }
 
-  if (uncompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
-    ctx->needs_reset = 1;
-    return decompress_buffered(ctx->dctx, input_data, input_size);
-  }
+   if (uncompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
+     ctx->needs_reset = 1;
+     return decompress_buffered(ctx->dctx, input_data, input_size, false);
+   }
 
   VALUE output = rb_str_new(NULL, uncompressed_size);
   char* output_data = RSTRING_PTR(output);
