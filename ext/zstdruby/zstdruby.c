@@ -39,7 +39,7 @@ static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
   return output;
 }
 
-static VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t input_size)
+VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t input_size, bool free_ctx)
 {
   ZSTD_inBuffer input = { input_data, input_size, 0 };
   VALUE result = rb_str_new(0, 0);
@@ -52,12 +52,12 @@ static VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t
 
     size_t ret = zstd_stream_decompress(dctx, &output, &input, false);
     if (ZSTD_isError(ret)) {
-      ZSTD_freeDCtx(dctx);
+      if (free_ctx) ZSTD_freeDCtx(dctx);
       rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_decompressStream failed", ZSTD_getErrorName(ret));
     }
     rb_str_cat(result, output.dst, output.pos);
   }
-  ZSTD_freeDCtx(dctx);
+  if (free_ctx) ZSTD_freeDCtx(dctx);
   return result;
 }
 
@@ -81,9 +81,9 @@ static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
   }
   // ZSTD_decompressStream may be called multiple times when ZSTD_CONTENTSIZE_UNKNOWN, causing slowness.
   // Therefore, we will not standardize on ZSTD_decompressStream
-  if (uncompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
-    return decompress_buffered(dctx, input_data, input_size);
-  }
+   if (uncompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
+     return decompress_buffered(dctx, input_data, input_size, true);
+   }
 
   VALUE output = rb_str_new(NULL, uncompressed_size);
   char* output_data = RSTRING_PTR(output);

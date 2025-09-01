@@ -53,14 +53,40 @@ require 'zstd-ruby'
 #### Simple Compression
 
 ```ruby
-compressed_data = Zstd.compress(data)
-compressed_data = Zstd.compress(data, level: complession_level) # default compression_level is 3
+compressed_data = Zstd.compress(data)  # default: 3
+compressed_data = Zstd.compress(data, level: 6)
 ```
 
-#### Compression with Dictionary
+### Context-based Compression
+
+For better performance with multiple operations, use reusable contexts:
+
 ```ruby
-# dictionary is supposed to have been created using `zstd --train`
-compressed_using_dict = Zstd.compress("", dict: File.read('dictionary_file'))
+# Unified context (recommended)
+ctx = Zstd::Context.new(level: 6)
+compressed = ctx.compress(data)
+original = ctx.decompress(compressed)
+
+# Specialized contexts for memory optimization
+cctx = Zstd::CContext.new(level: 6)  # Compression-only
+dctx = Zstd::DContext.new            # Decompression-only
+```
+
+### Dictionary Compression
+
+Dictionaries provide better compression for similar data:
+
+```ruby
+dictionary = File.read('dictionary_file')
+
+# Using module methods
+compressed = Zstd.compress(data, level: 3, dict: dictionary)
+original = Zstd.decompress(compressed, dict: dictionary)
+
+# Using contexts for better performance
+ctx = Zstd::Context.new(level: 6, dict: dictionary)
+compressed = ctx.compress(data)
+original = ctx.decompress(compressed)
 ```
 
 #### Compression with CDict
@@ -128,16 +154,9 @@ res << stream.finish
 
 ### Decompression
 
-#### Simple Decompression
-
 ```ruby
 data = Zstd.decompress(compressed_data)
-```
-
-#### Decompression with Dictionary
-```ruby
-# dictionary is supposed to have been created using `zstd --train`
-Zstd.decompress(compressed_using_dict, dict: File.read('dictionary_file'))
+data = Zstd.decompress(compressed_data, dict: dictionary)
 ```
 
 #### Decompression with DDict
@@ -157,79 +176,73 @@ result = ''
 result << stream.decompress(cstr[0, 10])
 result << stream.decompress(cstr[10..-1])
 ```
+## API Reference
 
-#### Streaming Decompression with dictionary
-```ruby
-cstr = "" # Compressed data
-stream = Zstd::StreamingDecompress.new(dict: File.read('dictionary_file'))
-result = ''
-result << stream.decompress(cstr[0, 10])
-result << stream.decompress(cstr[10..-1])
-```
+### Context Classes
 
-DDict can also be specified to `dict:`.
-
-#### Streaming Decompression with Position Tracking
-
-If you need to know how much of the input data was consumed during decompression, you can use the `decompress_with_pos` method:
+#### `Zstd::Context`
+Unified context for both compression and decompression.
 
 ```ruby
-cstr = "" # Compressed data
-stream = Zstd::StreamingDecompress.new
-result, consumed_bytes = stream.decompress_with_pos(cstr[0, 10])
-# result contains the decompressed data
-# consumed_bytes contains the number of bytes from input that were processed
+ctx = Zstd::Context.new                              # Default settings
+ctx = Zstd::Context.new(level: 6)                    # With compression level
+ctx = Zstd::Context.new(level: 6, dict: dictionary)  # With dictionary
 ```
 
-This is particularly useful when processing streaming data where you need to track the exact position in the input stream.
+- `compress(data)` → String
+- `decompress(compressed_data)` → String
 
-### Skippable frame
+#### `Zstd::CContext`
+Compression-only context for memory optimization.
 
 ```ruby
-compressed_data_with_skippable_frame = Zstd.write_skippable_frame(compressed_data, "sample data")
-
-Zstd.read_skippable_frame(compressed_data_with_skippable_frame)
-# => "sample data"
+cctx = Zstd::CContext.new(level: 6)                  # With compression level
+cctx = Zstd::CContext.new(level: 6, dict: dictionary) # With dictionary
 ```
 
-### Stream Writer and Reader Wrapper
-**EXPERIMENTAL**
+- `compress(data)` → String
 
-* These features are experimental and may be subject to API changes in future releases.
-* There may be performance and compatibility issues, so extensive testing is required before production use.
-* If you have any questions, encounter bugs, or have suggestions, please report them via [GitHub issues](https://github.com/SpringMT/zstd-ruby/issues).
-
-#### Zstd::StreamWriter
+#### `Zstd::DContext`
+Decompression-only context for memory optimization.
 
 ```ruby
-require 'stringio'
-require 'zstd-ruby'
-
-io = StringIO.new
-stream = Zstd::StreamWriter.new(io)
-stream.write("abc")
-stream.finish
-
-io.rewind
-# Retrieve the compressed data
-compressed_data = io.read
+dctx = Zstd::DContext.new                            # Default settings
+dctx = Zstd::DContext.new(dict: dictionary)          # With dictionary
 ```
 
-#### Zstd::StreamReader
+- `decompress(compressed_data)` → String
 
-```ruby
-require 'stringio'
-require 'zstd-ruby' # Add the appropriate require statement if necessary
+### Module Methods
 
-io = StringIO.new(compressed_data)
-reader = Zstd::StreamReader.new(io)
+#### Compression
+- `Zstd.compress(data)` → String (default level 3)
+- `Zstd.compress(data, dict: dictionary)` → String
 
-# Read and output the decompressed data
-puts reader.read(10)  # 'abc'
-puts reader.read(10)  # 'def'
-puts reader.read(10)  # '' (end of data)
+#### Decompression
+- `Zstd.decompress(compressed_data)` → String
+- `Zstd.decompress(compressed_data, dict: dictionary)` → String
+
+#### Utilities
+- `Zstd.zstd_version` → Integer
+
+### Performance Guidelines
+
+| Use Case | Recommended API | Benefits |
+|----------|----------------|----------|
+| Single operations | `Zstd.compress/decompress` | Simple, no setup |
+| Multiple operations | `Zstd::Context` | 2-3x faster, convenient |
+| Specialized needs | `Zstd::CContext/DContext` | Direct API access |
+
+**Compression Levels:** 1-3 (fast, 3 is default), 9-19 (better compression)
+
+## Benchmarks
+
+To test performance on your system:
+
+```bash
+cd benchmarks
+ruby quick_benchmark.rb             # Fast overview of all APIs (recommended)
 ```
-
 
 ## JRuby
 This gem does not support JRuby.
@@ -265,7 +278,6 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/SpringMT/zstd-ruby. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
-
 
 ## License
 
