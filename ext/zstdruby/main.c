@@ -4,6 +4,7 @@ VALUE rb_mZstd;
 VALUE rb_cCDict;
 VALUE rb_cDDict;
 void zstd_ruby_init(void);
+void zstd_ruby_context_init(void);
 void zstd_ruby_skippable_frame_init(void);
 void zstd_ruby_streaming_compress_init(void);
 void zstd_ruby_streaming_decompress_init(void);
@@ -19,6 +20,7 @@ Init_zstdruby(void)
   rb_cCDict = rb_define_class_under(rb_mZstd, "CDict", rb_cObject);
   rb_cDDict = rb_define_class_under(rb_mZstd, "DDict", rb_cObject);
   zstd_ruby_init();
+  zstd_ruby_context_init();
   zstd_ruby_skippable_frame_init();
   zstd_ruby_streaming_compress_init();
   zstd_ruby_streaming_decompress_init();

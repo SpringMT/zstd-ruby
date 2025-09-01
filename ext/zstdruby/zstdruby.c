@@ -39,7 +39,7 @@ static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
   return output;
 }
 
-static VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t input_size)
+VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t input_size)
 {
   ZSTD_inBuffer input = { input_data, input_size, 0 };
   VALUE result = rb_str_new(0, 0);
