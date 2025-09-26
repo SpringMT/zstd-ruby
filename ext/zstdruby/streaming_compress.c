@@ -158,6 +158,7 @@ rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
     const char* input_data = RSTRING_PTR(str);
     size_t input_size = RSTRING_LEN(str);
     ZSTD_inBuffer input = { input_data, input_size, 0 };
+    VALUE result = rb_str_new(0, 0);
 
     while (input.pos < input.size) {
       ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
@@ -167,9 +168,10 @@ rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
       }
       /* collect produced bytes */
       if (output.pos > 0) {
-        rb_str_cat(sc->pending, output.dst, output.pos);
+        rb_str_cat(result, output.dst, output.pos);
       }
     }
+    rb_str_cat(sc->pending, RSTRING_PTR(result), RSTRING_LEN(result));
     total += RSTRING_LEN(str);
   }
 
