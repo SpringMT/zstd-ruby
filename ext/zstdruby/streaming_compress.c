@@ -4,6 +4,7 @@ struct streaming_compress_t {
   ZSTD_CCtx* ctx;
   VALUE buf;
   size_t buf_size;
+  VALUE pending;   /* accumulate compressed bytes produced by write() */
 };
 
 static void
@@ -12,8 +13,10 @@ streaming_compress_mark(void *p)
   struct streaming_compress_t *sc = p;
 #ifdef HAVE_RB_GC_MARK_MOVABLE
   rb_gc_mark_movable(sc->buf);
+  rb_gc_mark_movable(sc->pending);
 #else
   rb_gc_mark(sc->buf);
+  rb_gc_mark(sc->pending);
 #endif
 }
 
@@ -40,6 +43,7 @@ streaming_compress_compact(void *p)
 {
   struct streaming_compress_t *sc = p;
   sc->buf = rb_gc_location(sc->buf);
+  sc->pending = rb_gc_location(sc->pending);
 }
 #endif
 
@@ -64,6 +68,7 @@ rb_streaming_compress_allocate(VALUE klass)
   sc->ctx = NULL;
   sc->buf = Qnil;
   sc->buf_size = 0;
+  sc->pending = Qnil;
   return obj;
 }
 
@@ -87,6 +92,7 @@ rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
   sc->ctx = ctx;
   sc->buf = rb_str_new(NULL, buffOutSize);
   sc->buf_size = buffOutSize;
+  sc->pending = rb_str_new(0, 0);
 
   return obj;
 }
@@ -143,7 +149,6 @@ static VALUE
 rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
 {
   size_t total = 0;
-  VALUE result = rb_str_new(0, 0);
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
   const char* output_data = RSTRING_PTR(sc->buf);
@@ -160,6 +165,10 @@ rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
       size_t const ret = zstd_stream_compress(sc->ctx, &output, &input, ZSTD_e_continue, false);
       if (ZSTD_isError(ret)) {
         rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
+      }
+      /* collect produced bytes */
+      if (output.pos > 0) {
+        rb_str_cat(sc->pending, output.dst, output.pos);
       }
       total += RSTRING_LEN(str);
     }
@@ -193,8 +202,11 @@ rb_streaming_compress_flush(VALUE obj)
 {
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
-  VALUE result = no_compress(sc, ZSTD_e_flush);
-  return result;
+  VALUE drained = no_compress(sc, ZSTD_e_flush);
+  rb_str_cat(sc->pending, RSTRING_PTR(drained), RSTRING_LEN(drained));
+  VALUE out = sc->pending;
+  sc->pending = rb_str_new(0, 0);
+  return out;
 }
 
 static VALUE
@@ -202,8 +214,11 @@ rb_streaming_compress_finish(VALUE obj)
 {
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
-  VALUE result = no_compress(sc, ZSTD_e_end);
-  return result;
+  VALUE drained = no_compress(sc, ZSTD_e_end);
+  rb_str_cat(sc->pending, RSTRING_PTR(drained), RSTRING_LEN(drained));
+  VALUE out = sc->pending;
+  sc->pending = rb_str_new(0, 0);
+  return out;
 }
 
 extern VALUE rb_mZstd, cStreamingCompress;
