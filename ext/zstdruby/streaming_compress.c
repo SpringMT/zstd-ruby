@@ -205,9 +205,9 @@ rb_streaming_compress_flush(VALUE obj)
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
   VALUE drained = no_compress(sc, ZSTD_e_flush);
-  rb_str_cat(sc->pending, RSTRING_PTR(drained), RSTRING_LEN(drained));
-  VALUE out = sc->pending;
-  sc->pending = rb_str_new(0, 0);
+  VALUE out = rb_str_dup(sc->pending);
+  rb_str_cat(out, RSTRING_PTR(drained), RSTRING_LEN(drained));
+  rb_str_resize(sc->pending, 0);
   return out;
 }
 
