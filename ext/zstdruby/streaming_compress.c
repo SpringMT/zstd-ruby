@@ -169,9 +169,10 @@ rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
       if (output.pos > 0) {
         rb_str_cat(sc->pending, output.dst, output.pos);
       }
-      total += RSTRING_LEN(str);
     }
+    total += RSTRING_LEN(str);
   }
+
   return SIZET2NUM(total);
 }
 
