@@ -101,16 +101,22 @@ rb_streaming_decompress_decompress(VALUE obj, VALUE src)
   struct streaming_decompress_t* sd;
   TypedData_Get_Struct(obj, struct streaming_decompress_t, &streaming_decompress_type, sd);
   VALUE result = rb_str_new(0, 0);
-  size_t ret;
-  do {
+
+  while (input.pos < input.size) {
     const char* output_data = RSTRING_PTR(sd->buf);
     ZSTD_outBuffer output = { (void*)output_data, sd->buf_size, 0 };
-    ret = zstd_stream_decompress(sd->dctx, &output, &input, false);
+    size_t const ret = zstd_stream_decompress(sd->dctx, &output, &input, false);
+
     if (ZSTD_isError(ret)) {
       rb_raise(rb_eRuntimeError, "decompress error error code: %s", ZSTD_getErrorName(ret));
     }
-    rb_str_cat(result, output.dst, output.pos);
-  } while (input.pos < input.size && ret > 0);
+    if (output.pos > 0) {
+        rb_str_cat(result, output.dst, output.pos);
+    }
+    if (ret == 0 && output.pos == 0) {
+        break;
+    }
+  }
   return result;
 }
 

@@ -157,7 +157,6 @@ rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
     const char* input_data = RSTRING_PTR(str);
     size_t input_size = RSTRING_LEN(str);
     ZSTD_inBuffer input = { input_data, input_size, 0 };
-    VALUE result = rb_str_new(0, 0);
 
     while (input.pos < input.size) {
       const char* output_data = RSTRING_PTR(sc->buf);
@@ -166,12 +165,11 @@ rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
       if (ZSTD_isError(ret)) {
         rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
       }
-      /* collect produced bytes */
+      /* Directly append to the pending buffer */
       if (output.pos > 0) {
-        rb_str_cat(result, output.dst, output.pos);
+        rb_str_cat(sc->pending, output.dst, output.pos);
       }
     }
-    rb_str_cat(sc->pending, RSTRING_PTR(result), RSTRING_LEN(result));
     total += RSTRING_LEN(str);
   }
 
