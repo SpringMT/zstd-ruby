@@ -111,7 +111,7 @@ no_compress(struct streaming_compress_t* sc, ZSTD_EndDirective endOp)
   do {
     ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
 
-    size_t const ret = zstd_stream_compress(sc->ctx, &output, &input, endOp, false);
+    ret = zstd_stream_compress(sc->ctx, &output, &input, endOp, false);
     if (ZSTD_isError(ret)) {
       rb_raise(rb_eRuntimeError, "flush error error code: %s", ZSTD_getErrorName(ret));
     }
