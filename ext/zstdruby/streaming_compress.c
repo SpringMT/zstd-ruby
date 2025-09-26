@@ -105,10 +105,10 @@ static VALUE
 no_compress(struct streaming_compress_t* sc, ZSTD_EndDirective endOp)
 {
   ZSTD_inBuffer input = { NULL, 0, 0 };
-  const char* output_data = RSTRING_PTR(sc->buf);
   VALUE result = rb_str_new(0, 0);
   size_t ret;
   do {
+    const char* output_data = RSTRING_PTR(sc->buf);
     ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
 
     ret = zstd_stream_compress(sc->ctx, &output, &input, endOp, false);
@@ -131,9 +131,9 @@ rb_streaming_compress_compress(VALUE obj, VALUE src)
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
 
-  const char* output_data = RSTRING_PTR(sc->buf);
   VALUE result = rb_str_new(0, 0);
   while (input.pos < input.size) {
+    const char* output_data = RSTRING_PTR(sc->buf);
     ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
     size_t const ret = zstd_stream_compress(sc->ctx, &output, &input, ZSTD_e_continue, false);
     if (ZSTD_isError(ret)) {
@@ -150,7 +150,6 @@ rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
   size_t total = 0;
   struct streaming_compress_t* sc;
   TypedData_Get_Struct(obj, struct streaming_compress_t, &streaming_compress_type, sc);
-  const char* output_data = RSTRING_PTR(sc->buf);
 
   while (argc-- > 0) {
     VALUE str = *argv++;
@@ -161,6 +160,7 @@ rb_streaming_compress_write(int argc, VALUE *argv, VALUE obj)
     VALUE result = rb_str_new(0, 0);
 
     while (input.pos < input.size) {
+      const char* output_data = RSTRING_PTR(sc->buf);
       ZSTD_outBuffer output = { (void*)output_data, sc->buf_size, 0 };
       size_t const ret = zstd_stream_compress(sc->ctx, &output, &input, ZSTD_e_continue, false);
       if (ZSTD_isError(ret)) {
