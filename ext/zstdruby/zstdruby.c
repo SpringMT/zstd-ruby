@@ -39,61 +39,91 @@ static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
   return output;
 }
 
-static VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* input_data, size_t input_size)
-{
-  ZSTD_inBuffer input = { input_data, input_size, 0 };
-  VALUE result = rb_str_new(0, 0);
+static VALUE decode_one_frame(ZSTD_DCtx* dctx, const unsigned char* src, size_t size, VALUE kwargs) {
+  VALUE out = rb_str_buf_new(0);
+  size_t cap = ZSTD_DStreamOutSize();
+  char *buf = ALLOC_N(char, cap);
+  ZSTD_inBuffer in = (ZSTD_inBuffer){ src, size, 0 };
 
-  while (input.pos < input.size) {
-    ZSTD_outBuffer output = { NULL, 0, 0 };
-    output.size += ZSTD_DStreamOutSize();
-    VALUE output_string = rb_str_new(NULL, output.size);
-    output.dst = RSTRING_PTR(output_string);
+  ZSTD_DCtx_reset(dctx, ZSTD_reset_session_only);
+  set_decompress_params(dctx, kwargs);
 
-    size_t ret = zstd_stream_decompress(dctx, &output, &input, false);
+  for (;;) {
+    ZSTD_outBuffer o = (ZSTD_outBuffer){ buf, cap, 0 };
+    size_t ret = ZSTD_decompressStream(dctx, &o, &in);
     if (ZSTD_isError(ret)) {
-      ZSTD_freeDCtx(dctx);
-      rb_raise(rb_eRuntimeError, "%s: %s", "ZSTD_decompressStream failed", ZSTD_getErrorName(ret));
+      xfree(buf);
+      rb_raise(rb_eRuntimeError, "ZSTD_decompressStream failed: %s", ZSTD_getErrorName(ret));
     }
-    rb_str_cat(result, output.dst, output.pos);
+    if (o.pos) {
+      rb_str_cat(out, buf, o.pos);
+    }
+    if (ret == 0) {
+      break;
+    }
   }
-  ZSTD_freeDCtx(dctx);
-  return result;
+  xfree(buf);
+  return out;
+}
+
+static VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* data, size_t len) {
+  return decode_one_frame(dctx, (const unsigned char*)data, len, Qnil);
 }
 
 static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
 {
-  VALUE input_value;
-  VALUE kwargs;
+  VALUE input_value, kwargs;
   rb_scan_args(argc, argv, "10:", &input_value, &kwargs);
   StringValue(input_value);
-  char* input_data = RSTRING_PTR(input_value);
-  size_t input_size = RSTRING_LEN(input_value);
-  ZSTD_DCtx* const dctx = ZSTD_createDCtx();
-  if (dctx == NULL) {
-    rb_raise(rb_eRuntimeError, "%s", "ZSTD_createDCtx failed");
-  }
-  set_decompress_params(dctx, kwargs);
 
-  unsigned long long const uncompressed_size = ZSTD_getFrameContentSize(input_data, input_size);
-  if (uncompressed_size == ZSTD_CONTENTSIZE_ERROR) {
-    rb_raise(rb_eRuntimeError, "%s: %s", "not compressed by zstd", ZSTD_getErrorName(uncompressed_size));
-  }
-  // ZSTD_decompressStream may be called multiple times when ZSTD_CONTENTSIZE_UNKNOWN, causing slowness.
-  // Therefore, we will not standardize on ZSTD_decompressStream
-  if (uncompressed_size == ZSTD_CONTENTSIZE_UNKNOWN) {
-    return decompress_buffered(dctx, input_data, input_size);
+  size_t in_size = RSTRING_LEN(input_value);
+  const unsigned char *in_r = (const unsigned char *)RSTRING_PTR(input_value);
+  unsigned char *in = ALLOC_N(unsigned char, in_size);
+  memcpy(in, in_r, in_size);
+
+  size_t off = 0;
+  const uint32_t ZSTD_MAGIC = 0xFD2FB528U;
+  const uint32_t SKIP_LO    = 0x184D2A50U; /* ...5F */
+
+  while (off + 4 <= in_size) {
+    uint32_t magic = (uint32_t)in[off]
+                   | ((uint32_t)in[off+1] << 8)
+                   | ((uint32_t)in[off+2] << 16)
+                   | ((uint32_t)in[off+3] << 24);
+
+    if ((magic & 0xFFFFFFF0U) == (SKIP_LO & 0xFFFFFFF0U)) {
+      if (off + 8 > in_size) break;
+      uint32_t skipLen = (uint32_t)in[off+4]
+                       | ((uint32_t)in[off+5] << 8)
+                       | ((uint32_t)in[off+6] << 16)
+                       | ((uint32_t)in[off+7] << 24);
+      size_t adv = (size_t)8 + (size_t)skipLen;
+      if (off + adv > in_size) break;
+      off += adv;
+      continue;
+    }
+
+    if (magic == ZSTD_MAGIC) {
+      ZSTD_DCtx *dctx = ZSTD_createDCtx();
+      if (!dctx) {
+        xfree(in);
+        rb_raise(rb_eRuntimeError, "ZSTD_createDCtx failed");
+      }
+
+      VALUE out = decode_one_frame(dctx, in + off, in_size - off, kwargs);
+
+      ZSTD_freeDCtx(dctx);
+      xfree(in);
+      RB_GC_GUARD(input_value);
+      return out;
+    }
+
+    off += 1;
   }
 
-  VALUE output = rb_str_new(NULL, uncompressed_size);
-  char* output_data = RSTRING_PTR(output);
-
-  size_t const decompress_size = zstd_decompress(dctx, output_data, uncompressed_size, input_data, input_size, false);
-  if (ZSTD_isError(decompress_size)) {
-    rb_raise(rb_eRuntimeError, "%s: %s", "decompress error", ZSTD_getErrorName(decompress_size));
-  }
-  ZSTD_freeDCtx(dctx);
-  return output;
+  xfree(in);
+  RB_GC_GUARD(input_value);
+  rb_raise(rb_eRuntimeError, "not a zstd frame (magic not found)");
 }
 
 static void free_cdict(void *dict)
