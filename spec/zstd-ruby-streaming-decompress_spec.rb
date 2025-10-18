@@ -169,7 +169,11 @@ RSpec.describe Zstd::StreamingDecompress do
           result << stream.decompress(cstr[10..-1])
           result
         }
-        expect(r.take).to eq('foo bar buzz')
+        # Ractor#take was replaced at Ruby 3.5.
+        # https://bugs.ruby-lang.org/issues/21262
+        result = r.respond_to?(:take) ? r.take : r.value
+
+        expect(result).to eq('foo bar buzz')
       end
     end
   end

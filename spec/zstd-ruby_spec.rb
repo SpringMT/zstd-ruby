@@ -118,7 +118,11 @@ RSpec.describe Zstd do
     describe 'Ractor' do
       it 'should be supported' do
         r = Ractor.new { Zstd.compress('abc') }
-        expect(Zstd.decompress(r.take)).to eq('abc')
+        # Ractor#take was replaced at Ruby 3.5.
+        # https://bugs.ruby-lang.org/issues/21262
+        result = r.respond_to?(:take) ? r.take : r.value
+
+        expect(Zstd.decompress(result)).to eq('abc')
       end
     end
   end
