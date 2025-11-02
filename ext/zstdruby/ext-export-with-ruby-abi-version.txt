@@ -1,1 +1,2 @@
 _Init_zstdruby
+_ruby_abi_version
