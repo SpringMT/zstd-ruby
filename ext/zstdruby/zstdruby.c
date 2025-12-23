@@ -170,7 +170,7 @@ static VALUE rb_cdict_initialize(int argc, VALUE *argv, VALUE self)
   VALUE dict;
   VALUE compression_level_value;
   rb_scan_args(argc, argv, "11", &dict, &compression_level_value);
-  int compression_level = convert_compression_level(compression_level_value);
+  int compression_level = convert_compression_level(NULL, compression_level_value);
 
   StringValue(dict);
   char* dict_buffer = RSTRING_PTR(dict);
