@@ -30,12 +30,12 @@ static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
   char* output_data = RSTRING_PTR(output);
 
   size_t const ret = zstd_compress(ctx, output_data, max_compressed_size, input_data, input_size, false);
+  ZSTD_freeCCtx(ctx);
   if (ZSTD_isError(ret)) {
     rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
   }
   rb_str_resize(output, ret);
 
-  ZSTD_freeCCtx(ctx);
   return output;
 }
 
