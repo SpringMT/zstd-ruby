@@ -14,6 +14,8 @@ static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
   VALUE kwargs;
   rb_scan_args(argc, argv, "10:", &input_value, &kwargs);
 
+  StringValue(input_value);
+
   ZSTD_CCtx* const ctx = ZSTD_createCCtx();
   if (ctx == NULL) {
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createCCtx error");
@@ -21,7 +23,6 @@ static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
 
   set_compress_params(ctx, kwargs);
 
-  StringValue(input_value);
   char* input_data = RSTRING_PTR(input_value);
   size_t input_size = RSTRING_LEN(input_value);
 
