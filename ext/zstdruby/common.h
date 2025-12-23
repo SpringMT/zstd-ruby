@@ -10,10 +10,16 @@
 
 extern VALUE rb_cCDict, rb_cDDict;
 
-static int convert_compression_level(VALUE compression_level_value)
+static int convert_compression_level(ZSTD_CCtx* ctx, VALUE compression_level_value)
 {
   if (NIL_P(compression_level_value)) {
     return ZSTD_CLEVEL_DEFAULT;
+  }
+  if (!RB_INTEGER_TYPE_P(compression_level_value)) {
+      if (ctx) {
+          ZSTD_freeCCtx(ctx);
+      }
+      rb_raise(rb_eTypeError, "compression level must be an Integer");
   }
   return NUM2INT(compression_level_value);
 }
@@ -28,7 +34,7 @@ static void set_compress_params(ZSTD_CCtx* const ctx, VALUE kwargs)
 
   int compression_level = ZSTD_CLEVEL_DEFAULT;
   if (kwargs_values[0] != Qundef && kwargs_values[0] != Qnil) {
-    compression_level = convert_compression_level(kwargs_values[0]);
+    compression_level = convert_compression_level(ctx, kwargs_values[0]);
   }
   ZSTD_CCtx_setParameter(ctx, ZSTD_c_compressionLevel, compression_level);
 
