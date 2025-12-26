@@ -78,9 +78,7 @@ static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
   StringValue(input_value);
 
   size_t in_size = RSTRING_LEN(input_value);
-  const unsigned char *in_r = (const unsigned char *)RSTRING_PTR(input_value);
-  unsigned char *in = ALLOC_N(unsigned char, in_size);
-  memcpy(in, in_r, in_size);
+  const unsigned char *in = (const unsigned char *)RSTRING_PTR(input_value);
 
   size_t off = 0;
   const uint32_t ZSTD_MAGIC = 0xFD2FB528U;
@@ -107,14 +105,12 @@ static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
     if (magic == ZSTD_MAGIC) {
       ZSTD_DCtx *dctx = ZSTD_createDCtx();
       if (!dctx) {
-        xfree(in);
         rb_raise(rb_eRuntimeError, "ZSTD_createDCtx failed");
       }
 
       VALUE out = decode_one_frame(dctx, in + off, in_size - off, kwargs);
 
       ZSTD_freeDCtx(dctx);
-      xfree(in);
       RB_GC_GUARD(input_value);
       return out;
     }
@@ -122,7 +118,6 @@ static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
     off += 1;
   }
 
-  xfree(in);
   RB_GC_GUARD(input_value);
   rb_raise(rb_eRuntimeError, "not a zstd frame (magic not found)");
 }
