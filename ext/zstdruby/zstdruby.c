@@ -145,13 +145,13 @@ static size_t sizeof_ddict(const void *dict)
 static const rb_data_type_t cdict_type = {
   "Zstd::CDict",
   {0, free_cdict, sizeof_cdict,},
-  0, 0, RUBY_TYPED_FREE_IMMEDIATELY
+  0, 0, RUBY_TYPED_FREE_IMMEDIATELY | RUBY_TYPED_WB_PROTECTED
 };
 
 static const rb_data_type_t ddict_type = {
   "Zstd::DDict",
   {0, free_ddict, sizeof_ddict,},
-  0, 0, RUBY_TYPED_FREE_IMMEDIATELY
+  0, 0, RUBY_TYPED_FREE_IMMEDIATELY | RUBY_TYPED_WB_PROTECTED
 };
 
 static VALUE rb_cdict_alloc(VALUE self)

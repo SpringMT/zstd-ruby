@@ -57,7 +57,7 @@ static const rb_data_type_t streaming_compress_type = {
     streaming_compress_compact,
 #endif
   },
-  0, 0, RUBY_TYPED_FREE_IMMEDIATELY
+  0, 0, RUBY_TYPED_FREE_IMMEDIATELY | RUBY_TYPED_WB_PROTECTED
 };
 
 static VALUE
@@ -66,9 +66,9 @@ rb_streaming_compress_allocate(VALUE klass)
   struct streaming_compress_t* sc;
   VALUE obj = TypedData_Make_Struct(klass, struct streaming_compress_t, &streaming_compress_type, sc);
   sc->ctx = NULL;
-  sc->buf = Qnil;
+  RB_OBJ_WRITE(obj, &sc->buf, Qnil);
   sc->buf_size = 0;
-  sc->pending = Qnil;
+  RB_OBJ_WRITE(obj, &sc->pending, Qnil);
   return obj;
 }
 
@@ -89,9 +89,9 @@ rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
   set_compress_params(ctx, kwargs);
 
   sc->ctx = ctx;
-  sc->buf = rb_str_new(NULL, buffOutSize);
+  RB_OBJ_WRITE(obj, &sc->buf, rb_str_new(NULL, buffOutSize));
   sc->buf_size = buffOutSize;
-  sc->pending = rb_str_new(0, 0);
+  RB_OBJ_WRITE(obj, &sc->pending, rb_str_new(0, 0));
 
   return obj;
 }
