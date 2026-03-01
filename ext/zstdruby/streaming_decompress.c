@@ -53,7 +53,7 @@ static const rb_data_type_t streaming_decompress_type = {
     streaming_decompress_compact,
 #endif
   },
-  0, 0, RUBY_TYPED_FREE_IMMEDIATELY
+  0, 0, RUBY_TYPED_FREE_IMMEDIATELY | RUBY_TYPED_WB_PROTECTED
 };
 
 static VALUE
@@ -62,7 +62,7 @@ rb_streaming_decompress_allocate(VALUE klass)
   struct streaming_decompress_t* sd;
   VALUE obj = TypedData_Make_Struct(klass, struct streaming_decompress_t, &streaming_decompress_type, sd);
   sd->dctx = NULL;
-  sd->buf = Qnil;
+  RB_OBJ_WRITE(obj, &sd->buf, Qnil);
   sd->buf_size = 0;
   return obj;
 }
@@ -84,7 +84,7 @@ rb_streaming_decompress_initialize(int argc, VALUE *argv, VALUE obj)
   set_decompress_params(dctx, kwargs);
 
   sd->dctx = dctx;
-  sd->buf = rb_str_new(NULL, buffOutSize);
+  RB_OBJ_WRITE(obj, &sd->buf, rb_str_new(NULL, buffOutSize));
   sd->buf_size = buffOutSize;
 
   return obj;
