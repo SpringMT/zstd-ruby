@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.summary       = %q{Ruby binding for zstd(Zstandard - Fast real-time compression algorithm)}
   spec.description   = %q{Ruby binding for zstd(Zstandard - Fast real-time compression algorithm). See https://github.com/facebook/zstd}
   spec.homepage      = "https://github.com/SpringMT/zstd-ruby"
-  spec.license       = "MIT"
+  spec.license       = "BSD-3-Clause"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
   # to allow pushing to a single host or delete this section to allow pushing to any host.
