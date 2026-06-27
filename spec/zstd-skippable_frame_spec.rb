@@ -30,5 +30,13 @@ RSpec.describe Zstd do
       end
     end
 
+    context 'large input (heap-allocated) + skippable frame' do
+      it 'round-trips without breaking' do
+        payload = 'A' * 1024
+        skippable = 'sample data'
+        frame = Zstd.write_skippable_frame(payload, skippable)
+        expect(Zstd.read_skippable_frame(frame)).to eq skippable
+      end
+    end
   end
 end
