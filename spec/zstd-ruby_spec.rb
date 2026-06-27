@@ -99,6 +99,19 @@ RSpec.describe Zstd do
       expect(Zstd.decompress(res)).to eq(large_strings * 3)
     end
 
+    it 'should decompress concatenated frames' do
+      a = Zstd.compress("Hello, ")
+      b = Zstd.compress("World!")
+      expect(Zstd.decompress(a + b)).to eq("Hello, World!")
+    end
+
+    it 'should decompress three or more concatenated frames' do
+      a = Zstd.compress("Hello, ")
+      b = Zstd.compress("World!")
+      c = Zstd.compress("!!!")
+      expect(Zstd.decompress(a + b + c)).to eq("Hello, World!!!!")
+    end
+
     it 'should raise exception with unsupported object' do
       expect { Zstd.decompress(Object.new) }.to raise_error(TypeError)
     end
