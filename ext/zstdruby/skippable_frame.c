@@ -36,6 +36,7 @@ static VALUE rb_write_skippable_frame(int argc, VALUE *argv, VALUE self)
 
 static VALUE rb_read_skippable_frame(VALUE self, VALUE input_value)
 {
+  StringValue(input_value);
   char* input_data = RSTRING_PTR(input_value);
   size_t input_size = RSTRING_LEN(input_value);
 

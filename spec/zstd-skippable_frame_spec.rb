@@ -30,5 +30,22 @@ RSpec.describe Zstd do
       end
     end
 
+    context 'non-String argument' do
+      [nil, 123456789, :symbol, [1, 2, 3], Object.new].each do |arg|
+        it "raises TypeError for #{arg.class}" do
+          expect { Zstd.read_skippable_frame(arg) }.to raise_error(TypeError)
+        end
+      end
+    end
+
+    context 'String-convertible argument' do
+      it 'accepts objects responding to #to_str' do
+        compressed_data = Zstd.compress(SecureRandom.hex(150))
+        frame = Zstd.write_skippable_frame(compressed_data, "sample data")
+        convertible = Object.new
+        convertible.define_singleton_method(:to_str) { frame }
+        expect(Zstd.read_skippable_frame(convertible)).to eq "sample data"
+      end
+    end
   end
 end
