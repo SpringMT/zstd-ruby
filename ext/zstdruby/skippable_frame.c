@@ -23,7 +23,7 @@ static VALUE rb_write_skippable_frame(int argc, VALUE *argv, VALUE self)
   size_t skip_size = RSTRING_LEN(skip_value);
 
   size_t dst_size = input_size + ZSTD_SKIPPABLEHEADERSIZE + skip_size;
-  VALUE output = rb_str_new(input_data, dst_size);
+  VALUE output = rb_str_new(NULL, dst_size);
   char* output_data = RSTRING_PTR(output);
   size_t output_size = ZSTD_writeSkippableFrame((void*)output_data, dst_size, (const void*)skip_data, skip_size, magic_variant);
   if (ZSTD_isError(output_size)) {
