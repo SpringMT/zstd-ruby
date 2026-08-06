@@ -116,7 +116,7 @@ res << stream.finish
 
 #### Streaming Compression with CDict of level 5
 ```ruby
-cdict = Zstd::CDict.new(File.read('dictionary_file', 5)
+cdict = Zstd::CDict.new(File.read('dictionary_file'), 5)
 stream = Zstd::StreamingCompress.new(dict: cdict)
 stream << "abc" << "def"
 res = stream.flush
@@ -143,8 +143,8 @@ Zstd.decompress(compressed_using_dict, dict: File.read('dictionary_file'))
 If you use the same dictionary repeatedly, you can speed up the setup by creating DDict in advance:
 
 ```ruby
-ddict = Zstd::Ddict.new(File.read('dictionary_file'))
-data = Zstd.compress(compressed_using_dict, ddict)
+ddict = Zstd::DDict.new(File.read('dictionary_file'))
+data = Zstd.decompress(compressed_using_dict, dict: ddict)
 ```
 
 #### Streaming Decompression

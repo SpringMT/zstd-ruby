@@ -45,6 +45,12 @@ RSpec.describe Zstd do
         convertible = Object.new
         convertible.define_singleton_method(:to_str) { frame }
         expect(Zstd.read_skippable_frame(convertible)).to eq "sample data"
+    context 'large input (heap-allocated) + skippable frame' do
+      it 'round-trips without breaking' do
+        payload = 'A' * 1024
+        skippable = 'sample data'
+        frame = Zstd.write_skippable_frame(payload, skippable)
+        expect(Zstd.read_skippable_frame(frame)).to eq skippable
       end
     end
   end
