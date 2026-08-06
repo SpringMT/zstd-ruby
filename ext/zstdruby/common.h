@@ -24,7 +24,11 @@ static int convert_compression_level(ZSTD_CCtx* ctx, VALUE compression_level_val
   return NUM2INT(compression_level_value);
 }
 
-static void set_compress_params(ZSTD_CCtx* const ctx, VALUE kwargs)
+/* Returns the Zstd::CDict given as `dict:`, or Qnil. ZSTD_CCtx_refCDict only
+   borrows the pointer, so a caller that keeps the ZSTD_CCtx alive beyond this
+   call has to keep the returned object reachable for just as long. A String
+   dictionary needs no such handling: ZSTD_CCtx_loadDictionary copies it. */
+static VALUE set_compress_params(ZSTD_CCtx* const ctx, VALUE kwargs)
 {
   ID kwargs_keys[2];
   kwargs_keys[0] = rb_intern("level");
@@ -46,6 +50,7 @@ static void set_compress_params(ZSTD_CCtx* const ctx, VALUE kwargs)
         ZSTD_freeCCtx(ctx);
         rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_refCDict failed");
       }
+      return kwargs_values[1];
     } else if (TYPE(kwargs_values[1]) == T_STRING) {
       char* dict_buffer = RSTRING_PTR(kwargs_values[1]);
       size_t dict_size = RSTRING_LEN(kwargs_values[1]);
@@ -59,6 +64,7 @@ static void set_compress_params(ZSTD_CCtx* const ctx, VALUE kwargs)
       rb_raise(rb_eArgError, "`dict:` must be a Zstd::CDict or a String");
     }
   }
+  return Qnil;
 }
 
 struct stream_compress_params {
@@ -122,7 +128,9 @@ static size_t zstd_compress(ZSTD_CCtx* const ctx, char* output_data, size_t outp
 #endif
 }
 
-static void set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)
+/* Returns the Zstd::DDict given as `dict:`, or Qnil. See set_compress_params:
+   ZSTD_DCtx_refDDict borrows, ZSTD_DCtx_loadDictionary copies. */
+static VALUE set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)
 {
   ID kwargs_keys[1];
   kwargs_keys[0] = rb_intern("dict");
@@ -137,6 +145,7 @@ static void set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)
         ZSTD_freeDCtx(dctx);
         rb_raise(rb_eRuntimeError, "%s", "ZSTD_DCtx_refDDict failed");
       }
+      return kwargs_values[0];
     } else if (TYPE(kwargs_values[0]) == T_STRING) {
       char* dict_buffer = RSTRING_PTR(kwargs_values[0]);
       size_t dict_size = RSTRING_LEN(kwargs_values[0]);
@@ -150,6 +159,7 @@ static void set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)
       rb_raise(rb_eArgError, "`dict:` must be a Zstd::DDict or a String");
     }
   }
+  return Qnil;
 }
 
 struct stream_decompress_params {
