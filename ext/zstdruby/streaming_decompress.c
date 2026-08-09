@@ -86,10 +86,11 @@ rb_streaming_decompress_initialize(int argc, VALUE *argv, VALUE obj)
   if (dctx == NULL) {
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createDCtx error");
   }
-  VALUE dict = set_decompress_params(dctx, kwargs);
-
+  /* Before set_decompress_params, which can raise: the free callback owns it. */
   sd->dctx = dctx;
+  VALUE dict = set_decompress_params(dctx, kwargs);
   RB_OBJ_WRITE(obj, &sd->dict, dict);
+
   RB_OBJ_WRITE(obj, &sd->buf, rb_str_new(NULL, buffOutSize));
   sd->buf_size = buffOutSize;
 
