@@ -1,5 +1,5 @@
 module Zstd
-  # @todo Exprimental
+  # @todo Experimental
   class StreamWriter
     def initialize(io, level: nil)
       @io = io
