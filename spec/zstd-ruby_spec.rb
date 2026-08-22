@@ -116,6 +116,18 @@ RSpec.describe Zstd do
       expect { Zstd.decompress(Object.new) }.to raise_error(TypeError)
     end
 
+    it 'should raise (not hang) on a truncated frame' do
+      full = Zstd.compress('a' * 2000)
+      [
+        "\x28\xB5\x2F\xFD".b, # bare zstd magic, no body
+        full.byteslice(0, 5),
+        full.byteslice(0, 6),
+        full.byteslice(0, full.bytesize / 2),
+      ].each do |truncated|
+        expect { Zstd.decompress(truncated) }.to raise_error(RuntimeError)
+      end
+    end
+
     class DummyForDecompress
       def to_str
         Zstd.compress('abc')
