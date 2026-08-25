@@ -129,7 +129,8 @@ static size_t zstd_compress(ZSTD_CCtx* const ctx, char* output_data, size_t outp
 }
 
 /* Returns the Zstd::DDict given as `dict:`, or Qnil. See set_compress_params:
-   ZSTD_DCtx_refDDict borrows, ZSTD_DCtx_loadDictionary copies. */
+   ZSTD_DCtx_refDDict borrows, ZSTD_DCtx_loadDictionary copies. Raises without
+   freeing dctx: the caller owns it and has to release it. */
 static VALUE set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)
 {
   ID kwargs_keys[1];
@@ -142,7 +143,6 @@ static VALUE set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)
       ZSTD_DDict* ddict = DATA_PTR(kwargs_values[0]);
       size_t ref_dict_ret = ZSTD_DCtx_refDDict(dctx, ddict);
       if (ZSTD_isError(ref_dict_ret)) {
-        ZSTD_freeDCtx(dctx);
         rb_raise(rb_eRuntimeError, "%s", "ZSTD_DCtx_refDDict failed");
       }
       return kwargs_values[0];
@@ -151,11 +151,9 @@ static VALUE set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)
       size_t dict_size = RSTRING_LEN(kwargs_values[0]);
       size_t load_dict_ret = ZSTD_DCtx_loadDictionary(dctx, dict_buffer, dict_size);
       if (ZSTD_isError(load_dict_ret)) {
-        ZSTD_freeDCtx(dctx);
         rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
       }
     } else {
-      ZSTD_freeDCtx(dctx);
       rb_raise(rb_eArgError, "`dict:` must be a Zstd::DDict or a String");
     }
   }
