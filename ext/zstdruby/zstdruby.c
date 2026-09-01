@@ -52,7 +52,7 @@ static VALUE decode_one_frame(ZSTD_DCtx* dctx, const unsigned char* src, size_t 
   for (;;) {
     ZSTD_outBuffer o = (ZSTD_outBuffer){ buf, cap, 0 };
     size_t const in_pos_before = in.pos;
-    size_t ret = ZSTD_decompressStream(dctx, &o, &in);
+    size_t ret = zstd_stream_decompress(dctx, &o, &in, false);
     if (ZSTD_isError(ret)) {
       xfree(buf);
       rb_raise(rb_eRuntimeError, "ZSTD_decompressStream failed: %s", ZSTD_getErrorName(ret));
