@@ -78,10 +78,6 @@ static VALUE decode_one_frame(ZSTD_DCtx* dctx, const unsigned char* src, size_t 
   return out;
 }
 
-static VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* data, size_t len) {
-  return decode_one_frame(dctx, (const unsigned char*)data, len, Qnil, NULL);
-}
-
 static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
 {
   VALUE input_value, kwargs;
@@ -216,7 +212,7 @@ static VALUE rb_cdict_initialize(int argc, VALUE *argv, VALUE self)
 
 static VALUE rb_ddict_alloc(VALUE self)
 {
-  ZSTD_CDict* ddict = NULL;
+  ZSTD_DDict* ddict = NULL;
   return TypedData_Wrap_Struct(self, &ddict_type, ddict);
 }
 

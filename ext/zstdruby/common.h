@@ -152,7 +152,7 @@ static VALUE set_decompress_params(ZSTD_DCtx* const dctx, VALUE kwargs)
       size_t load_dict_ret = ZSTD_DCtx_loadDictionary(dctx, dict_buffer, dict_size);
       if (ZSTD_isError(load_dict_ret)) {
         ZSTD_freeDCtx(dctx);
-        rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
+        rb_raise(rb_eRuntimeError, "%s", "ZSTD_DCtx_loadDictionary failed");
       }
     } else {
       ZSTD_freeDCtx(dctx);
@@ -188,37 +188,6 @@ static size_t zstd_stream_decompress(ZSTD_DCtx* const dctx, ZSTD_outBuffer* outp
     }
 #else
     return ZSTD_decompressStream(dctx, output, input);
-#endif
-}
-
-struct decompress_params {
-  ZSTD_DCtx* dctx;
-  char* output_data;
-  size_t output_size;
-  char* input_data;
-  size_t input_size;
-  size_t ret;
-};
-
-static void* decompress_wrapper(void* args)
-{
-    struct decompress_params* params = args;
-    params->ret = ZSTD_decompressDCtx(params->dctx, params->output_data, params->output_size, params->input_data, params->input_size);
-    return NULL;
-}
-
-static size_t zstd_decompress(ZSTD_DCtx* const dctx, char* output_data, size_t output_size, char* input_data, size_t input_size, bool gvl)
-{
-#ifdef HAVE_RUBY_THREAD_H
-    if (gvl) {
-      return ZSTD_decompressDCtx(dctx, output_data, output_size, input_data, input_size);
-    } else {
-      struct decompress_params params = { dctx, output_data, output_size, input_data, input_size };
-      rb_thread_call_without_gvl(decompress_wrapper, &params, NULL, NULL);
-      return params.ret;
-    }
-#else
-    return ZSTD_decompressDCtx(dctx, output_data, output_size, input_data, input_size);
 #endif
 }
 
