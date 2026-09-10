@@ -91,6 +91,28 @@ RSpec.describe Zstd::StreamingCompress do
     end
   end
 
+  describe 'Zstd::CDict dictionary the caller does not keep' do
+    let(:dictionary) do
+      File.read("#{__dir__}/dictionary")
+    end
+    let(:user_json) do
+      File.read("#{__dir__}/user_springmt.json")
+    end
+    it 'stays alive as long as the stream that references it' do
+      # The CDict is never stored anywhere: the stream is its only reference.
+      stream = Zstd::StreamingCompress.new(dict: Zstd::CDict.new(dictionary, 5))
+      GC.start
+      GC.compact
+      1000.times { |i| "fill the slot the CDict would have freed #{i}" }
+      GC.start
+
+      stream << user_json
+      compressed = stream.finish
+
+      expect(Zstd.decompress(compressed, dict: dictionary)).to eq(user_json)
+    end
+  end
+
   describe 'nil dictionary' do
     let(:user_json) do
       File.read("#{__dir__}/user_springmt.json")

@@ -4,6 +4,7 @@ struct streaming_decompress_t {
   ZSTD_DCtx* dctx;
   VALUE buf;
   size_t buf_size;
+  VALUE dict;      /* Zstd::DDict the dctx borrows a pointer into, or Qnil */
 };
 
 static void
@@ -12,8 +13,10 @@ streaming_decompress_mark(void *p)
   struct streaming_decompress_t *sd = p;
 #ifdef HAVE_RB_GC_MARK_MOVABLE
   rb_gc_mark_movable(sd->buf);
+  rb_gc_mark_movable(sd->dict);
 #else
   rb_gc_mark(sd->buf);
+  rb_gc_mark(sd->dict);
 #endif
 }
 
@@ -40,6 +43,7 @@ streaming_decompress_compact(void *p)
 {
   struct streaming_decompress_t *sd = p;
   sd->buf = rb_gc_location(sd->buf);
+  sd->dict = rb_gc_location(sd->dict);
 }
 #endif
 
@@ -64,6 +68,7 @@ rb_streaming_decompress_allocate(VALUE klass)
   sd->dctx = NULL;
   RB_OBJ_WRITE(obj, &sd->buf, Qnil);
   sd->buf_size = 0;
+  RB_OBJ_WRITE(obj, &sd->dict, Qnil);
   return obj;
 }
 
@@ -81,9 +86,10 @@ rb_streaming_decompress_initialize(int argc, VALUE *argv, VALUE obj)
   if (dctx == NULL) {
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createDCtx error");
   }
-  set_decompress_params(dctx, kwargs);
+  VALUE dict = set_decompress_params(dctx, kwargs);
 
   sd->dctx = dctx;
+  RB_OBJ_WRITE(obj, &sd->dict, dict);
   RB_OBJ_WRITE(obj, &sd->buf, rb_str_new(NULL, buffOutSize));
   sd->buf_size = buffOutSize;
 

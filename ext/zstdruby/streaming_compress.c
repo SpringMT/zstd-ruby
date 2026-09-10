@@ -5,6 +5,7 @@ struct streaming_compress_t {
   VALUE buf;
   size_t buf_size;
   VALUE pending;   /* accumulate compressed bytes produced by write() */
+  VALUE dict;      /* Zstd::CDict the ctx borrows a pointer into, or Qnil */
 };
 
 static void
@@ -14,9 +15,11 @@ streaming_compress_mark(void *p)
 #ifdef HAVE_RB_GC_MARK_MOVABLE
   rb_gc_mark_movable(sc->buf);
   rb_gc_mark_movable(sc->pending);
+  rb_gc_mark_movable(sc->dict);
 #else
   rb_gc_mark(sc->buf);
   rb_gc_mark(sc->pending);
+  rb_gc_mark(sc->dict);
 #endif
 }
 
@@ -44,6 +47,7 @@ streaming_compress_compact(void *p)
   struct streaming_compress_t *sc = p;
   sc->buf = rb_gc_location(sc->buf);
   sc->pending = rb_gc_location(sc->pending);
+  sc->dict = rb_gc_location(sc->dict);
 }
 #endif
 
@@ -69,6 +73,7 @@ rb_streaming_compress_allocate(VALUE klass)
   RB_OBJ_WRITE(obj, &sc->buf, Qnil);
   sc->buf_size = 0;
   RB_OBJ_WRITE(obj, &sc->pending, Qnil);
+  RB_OBJ_WRITE(obj, &sc->dict, Qnil);
   return obj;
 }
 
@@ -86,9 +91,10 @@ rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
   if (ctx == NULL) {
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createCCtx error");
   }
-  set_compress_params(ctx, kwargs);
+  VALUE dict = set_compress_params(ctx, kwargs);
 
   sc->ctx = ctx;
+  RB_OBJ_WRITE(obj, &sc->dict, dict);
   RB_OBJ_WRITE(obj, &sc->buf, rb_str_new(NULL, buffOutSize));
   sc->buf_size = buffOutSize;
   RB_OBJ_WRITE(obj, &sc->pending, rb_str_new(0, 0));
