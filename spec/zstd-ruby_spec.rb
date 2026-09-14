@@ -128,6 +128,21 @@ RSpec.describe Zstd do
       end
     end
 
+    # These two walk the paths that used to leak the ZSTD_DCtx. Nothing here
+    # asserts the leak itself -- Valgrind or ASan on these examples reports it.
+    it 'should raise when a frame body fails to decode' do
+      # A valid frame header, so libzstd allocates its buffers from it, followed
+      # by a truncated body.
+      good = Zstd.compress(user_json * 50)
+      broken = good.byteslice(0, good.bytesize / 2) + ("\x00" * 32)
+
+      expect { Zstd.decompress(broken) }.to raise_error(RuntimeError)
+    end
+
+    it 'should raise when the dict argument is rejected' do
+      expect { Zstd.decompress(Zstd.compress('abc'), dict: 123) }.to raise_error(ArgumentError)
+    end
+
     class DummyForDecompress
       def to_str
         Zstd.compress('abc')

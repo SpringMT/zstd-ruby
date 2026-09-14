@@ -40,25 +40,26 @@ static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
   return output;
 }
 
-static VALUE decode_one_frame(ZSTD_DCtx* dctx, const unsigned char* src, size_t size, VALUE kwargs, size_t* consumed) {
-  VALUE out = rb_str_buf_new(0);
-  size_t cap = ZSTD_DStreamOutSize();
-  char *buf = ALLOC_N(char, cap);
-  ZSTD_inBuffer in = (ZSTD_inBuffer){ src, size, 0 };
+struct decode_frame {
+  ZSTD_DCtx* dctx;
+  char* buf;
+  size_t cap;
+  ZSTD_inBuffer in;
+  VALUE out;
+};
 
-  ZSTD_DCtx_reset(dctx, ZSTD_reset_session_only);
-  set_decompress_params(dctx, kwargs);
+static VALUE decode_frame_body(VALUE arg) {
+  struct decode_frame* st = (struct decode_frame*)arg;
 
   for (;;) {
-    ZSTD_outBuffer o = (ZSTD_outBuffer){ buf, cap, 0 };
-    size_t const in_pos_before = in.pos;
-    size_t ret = ZSTD_decompressStream(dctx, &o, &in);
+    ZSTD_outBuffer o = (ZSTD_outBuffer){ st->buf, st->cap, 0 };
+    size_t const in_pos_before = st->in.pos;
+    size_t ret = ZSTD_decompressStream(st->dctx, &o, &st->in);
     if (ZSTD_isError(ret)) {
-      xfree(buf);
       rb_raise(rb_eRuntimeError, "ZSTD_decompressStream failed: %s", ZSTD_getErrorName(ret));
     }
     if (o.pos) {
-      rb_str_cat(out, buf, o.pos);
+      rb_str_cat(st->out, st->buf, o.pos);
     }
     if (ret == 0) {
       break;
@@ -66,14 +67,33 @@ static VALUE decode_one_frame(ZSTD_DCtx* dctx, const unsigned char* src, size_t 
     /* A non-zero return is a "need more input" hint, not an error, and libzstd's
        own noForwardProgress guard is bypassed by the early return it takes on a
        truncated frame header -- so the stall has to be detected here. */
-    if (o.pos == 0 && in.pos == in_pos_before) {
-      xfree(buf);
+    if (o.pos == 0 && st->in.pos == in_pos_before) {
       rb_raise(rb_eRuntimeError, "ZSTD_decompressStream failed: truncated or incomplete frame");
     }
   }
-  xfree(buf);
+  return st->out;
+}
+
+static VALUE decode_frame_ensure(VALUE arg) {
+  struct decode_frame* st = (struct decode_frame*)arg;
+  xfree(st->buf);
+  return Qnil;
+}
+
+static VALUE decode_one_frame(ZSTD_DCtx* dctx, const unsigned char* src, size_t size, VALUE kwargs, size_t* consumed) {
+  ZSTD_DCtx_reset(dctx, ZSTD_reset_session_only);
+  set_decompress_params(dctx, kwargs);
+
+  struct decode_frame st;
+  st.dctx = dctx;
+  st.out = rb_str_buf_new(0);
+  st.cap = ZSTD_DStreamOutSize();
+  st.buf = ALLOC_N(char, st.cap);
+  st.in = (ZSTD_inBuffer){ src, size, 0 };
+
+  VALUE out = rb_ensure(decode_frame_body, (VALUE)&st, decode_frame_ensure, (VALUE)&st);
   if (consumed) {
-    *consumed = in.pos;
+    *consumed = st.in.pos;
   }
   return out;
 }
@@ -82,21 +102,24 @@ static VALUE decompress_buffered(ZSTD_DCtx* dctx, const char* data, size_t len) 
   return decode_one_frame(dctx, (const unsigned char*)data, len, Qnil, NULL);
 }
 
-static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
-{
-  VALUE input_value, kwargs;
-  rb_scan_args(argc, argv, "10:", &input_value, &kwargs);
-  StringValue(input_value);
+struct decompress_scan {
+  const unsigned char* in;
+  size_t in_size;
+  VALUE kwargs;
+  ZSTD_DCtx* dctx;
+};
 
-  size_t in_size = RSTRING_LEN(input_value);
-  const unsigned char *in = (const unsigned char *)RSTRING_PTR(input_value);
+static VALUE decompress_scan_body(VALUE arg)
+{
+  struct decompress_scan* st = (struct decompress_scan*)arg;
+  const unsigned char *in = st->in;
+  size_t in_size = st->in_size;
 
   size_t off = 0;
   const uint32_t ZSTD_MAGIC = 0xFD2FB528U;
   const uint32_t SKIP_LO    = 0x184D2A50U; /* ...5F */
 
   VALUE result = Qnil;
-  ZSTD_DCtx *dctx = NULL;
 
   while (off + 4 <= in_size) {
     uint32_t magic = (uint32_t)in[off]
@@ -117,15 +140,15 @@ static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
     }
 
     if (magic == ZSTD_MAGIC) {
-      if (dctx == NULL) {
-        dctx = ZSTD_createDCtx();
-        if (!dctx) {
+      if (st->dctx == NULL) {
+        st->dctx = ZSTD_createDCtx();
+        if (!st->dctx) {
           rb_raise(rb_eRuntimeError, "ZSTD_createDCtx failed");
         }
       }
 
       size_t consumed = 0;
-      VALUE out = decode_one_frame(dctx, in + off, in_size - off, kwargs, &consumed);
+      VALUE out = decode_one_frame(st->dctx, in + off, in_size - off, st->kwargs, &consumed);
       if (result == Qnil) {
         /* First frame becomes the accumulator, avoiding a copy of its
            (potentially large) output in the common single-frame case. */
@@ -145,9 +168,31 @@ static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
     off += 1;
   }
 
-  if (dctx != NULL) {
-    ZSTD_freeDCtx(dctx);
+  return result;
+}
+
+static VALUE decompress_scan_ensure(VALUE arg)
+{
+  struct decompress_scan* st = (struct decompress_scan*)arg;
+  if (st->dctx != NULL) {
+    ZSTD_freeDCtx(st->dctx);
   }
+  return Qnil;
+}
+
+static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
+{
+  VALUE input_value, kwargs;
+  rb_scan_args(argc, argv, "10:", &input_value, &kwargs);
+  StringValue(input_value);
+
+  struct decompress_scan st;
+  st.in = (const unsigned char *)RSTRING_PTR(input_value);
+  st.in_size = RSTRING_LEN(input_value);
+  st.kwargs = kwargs;
+  st.dctx = NULL;
+
+  VALUE result = rb_ensure(decompress_scan_body, (VALUE)&st, decompress_scan_ensure, (VALUE)&st);
 
   RB_GC_GUARD(input_value);
   if (result == Qnil) {
