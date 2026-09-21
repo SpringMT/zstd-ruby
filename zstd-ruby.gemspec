@@ -24,7 +24,8 @@ Gem::Specification.new do |spec|
   #end
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
-    f.match(%r{^(test|spec|features|benchmarks|zstd|.github|examples)/})
+    # "zstd" is the submodule gitlink, not a file.
+    f == "zstd" || f.match(%r{^(test|spec|features|benchmarks|zstd|.github|examples|script)/})
   end
   spec.bindir        = "exe"
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
@@ -34,6 +35,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "bundler"
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rake-compiler", '~> 1'
+  spec.add_development_dependency "rake-compiler-dock", '~> 1.12'
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "pry"
 end

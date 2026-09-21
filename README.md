@@ -40,6 +40,25 @@ Or install it yourself as:
 
     $ gem install zstd-ruby
 
+### Precompiled gems
+
+Precompiled gems are published for the platforms below, so no compiler or `make`
+is needed at install time:
+
+| Platform | |
+| --- | --- |
+| `x86_64-linux`, `aarch64-linux` | glibc |
+| `x86_64-linux-musl`, `aarch64-linux-musl` | musl (Alpine) |
+| `x86_64-darwin`, `arm64-darwin` | macOS |
+
+Each one carries a binary for Ruby 3.1, 3.2, 3.3, 3.4 and 4.0. Anything outside
+that set — another platform, another Ruby — installs the source gem and compiles
+the bundled libzstd as before.
+
+To force a source install:
+
+    $ gem install zstd-ruby --platform=ruby
+
 ## Usage
 
 ```ruby
@@ -259,6 +278,24 @@ testtest
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+
+### Precompiled gems
+
+The precompiled gems are cross-compiled with [rake-compiler-dock](https://github.com/rake-compiler/rake-compiler-dock). The platform and Ruby ABI lists live at the top of the `Rakefile`.
+
+With docker running, build one platform locally:
+
+    $ bundle exec rake gem:x86_64-linux
+
+or all of them (slow, and it pulls one container image per platform):
+
+    $ bundle exec rake gem:native
+
+The gems land in `pkg/`. `script/smoke.rb` exercises an installed gem and is what CI runs on each target.
+
+In CI this is the `Precompile` workflow. It runs on version tags — the same tags `rake release` pushes — builds the six platform gems, smoke-tests each one on a matching machine or container, and pushes them to rubygems.org. The source gem still goes out through `rake release` itself.
+
+Publishing uses [trusted publishing](https://guides.rubygems.org/trusted-publishing/), so rubygems.org needs a trusted publisher registered for this repository and the `precompile.yml` workflow. Until that exists, the build and smoke jobs still work; only the final push step fails.
 
 ## Contributing
 
