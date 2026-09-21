@@ -1,0 +1,216 @@
+# Builds the precompiled (native) gems with rake-compiler-dock, smoke-tests each
+# one on a matching target, and publishes them when a version tag is pushed.
+#
+# Six platforms x five Ruby ABIs is too heavy for every PR, so this only runs on
+# tags, on manual dispatch, and when the build files themselves change.
+
+name: Precompile
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - '.github/workflows/precompile.yml'
+      - 'Rakefile'
+      - 'zstd-ruby.gemspec'
+      - 'lib/zstd-ruby.rb'
+      - 'script/smoke.rb'
+      - 'ext/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - x86_64-linux
+          - aarch64-linux
+          - x86_64-linux-musl
+          - aarch64-linux-musl
+          - x86_64-darwin
+          - arm64-darwin
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+      - name: Build
+        run: bundle exec rake gem:${{ matrix.platform }}
+      - name: Describe the gem
+        run: |
+          gem=$(ls pkg/*-${{ matrix.platform }}.gem)
+          ruby -rrubygems/package -e '
+            spec = Gem::Package.new(ARGV[0]).spec
+            abis = spec.files.grep(%r{\Alib/zstd-ruby/(\d+\.\d+)/}) { $1 }.uniq.sort
+            puts "### #{File.basename(ARGV[0])}"
+            puts "- platform: #{spec.platform}"
+            puts "- ruby ABIs: #{abis.join(", ")}"
+            puts "- required_ruby_version: #{spec.required_ruby_version}"
+            puts "- required_rubygems_version: #{spec.required_rubygems_version}"
+          ' "$gem" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gem-${{ matrix.platform }}
+          path: pkg/*-${{ matrix.platform }}.gem
+          if-no-files-found: error
+
+  # x86_64-linux: install straight onto the runner, across the whole baked ABI range
+  smoke-linux:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.1', '3.4', '4.0']
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: gem-x86_64-linux
+          path: pkg
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - run: |
+          gem install --no-document ./pkg/*.gem
+          ruby script/smoke.rb
+
+  # aarch64-linux: run an arm64 container under QEMU
+  smoke-linux-arm64:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: gem-aarch64-linux
+          path: pkg
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - run: |
+          docker run --rm --platform linux/arm64 -v "$PWD:/work" -w /work ruby:3.4-slim \
+            bash -c 'set -eux; gem install --no-document ./pkg/*.gem; ruby script/smoke.rb'
+
+  # musl: also checks that Alpine's RubyGems accepts the -musl platform gem
+  smoke-linux-musl:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: gem-x86_64-linux-musl
+          path: pkg
+      - run: |
+          docker run --rm -v "$PWD:/work" -w /work ruby:3.4-alpine \
+            sh -c 'set -eux; gem install --no-document ./pkg/*.gem; ruby script/smoke.rb'
+
+  smoke-linux-musl-arm64:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: gem-aarch64-linux-musl
+          path: pkg
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - run: |
+          docker run --rm --platform linux/arm64 -v "$PWD:/work" -w /work ruby:3.4-alpine \
+            sh -c 'set -eux; gem install --no-document ./pkg/*.gem; ruby script/smoke.rb'
+
+  # arm64-darwin: the default macOS runners are Apple Silicon
+  smoke-macos-arm64:
+    needs: build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: gem-arm64-darwin
+          path: pkg
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - run: |
+          gem install --no-document ./pkg/*.gem
+          ruby script/smoke.rb
+
+  # x86_64-darwin: GitHub's last Intel macOS image
+  smoke-macos-x86_64:
+    needs: build
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: gem-x86_64-darwin
+          path: pkg
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - run: |
+          gem install --no-document ./pkg/*.gem
+          ruby script/smoke.rb
+
+  # Publishes the platform gems only. The source gem keeps going out through
+  # `rake release`, which is also what creates the tag this job reacts to.
+  #
+  # Authentication is trusted publishing (OIDC): rubygems.org needs a trusted
+  # publisher configured for this repository and workflow file, and no API key
+  # is stored here.
+  publish:
+    needs:
+      - smoke-linux
+      - smoke-linux-arm64
+      - smoke-linux-musl
+      - smoke-linux-musl-arm64
+      - smoke-macos-arm64
+      - smoke-macos-x86_64
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gem-*
+          merge-multiple: true
+          path: pkg
+      - name: Check the tag matches Zstd::VERSION
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version=$(ruby -Ilib -e 'require "zstd-ruby/version"; print Zstd::VERSION')
+          echo "tag=$tag version=$version"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::tag ($tag) does not match Zstd::VERSION ($version)" >&2
+            exit 1
+          fi
+      - uses: rubygems/configure-rubygems-credentials@v2.1.0
+      - name: Push
+        run: |
+          for gem in pkg/*.gem; do
+            echo "pushing $gem"
+            gem push "$gem"
+          done
