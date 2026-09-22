@@ -132,6 +132,7 @@ static VALUE rb_decompress(int argc, VALUE *argv, VALUE self)
         result = out;
       } else {
         rb_str_cat(result, RSTRING_PTR(out), RSTRING_LEN(out));
+        RB_GC_GUARD(out);
       }
 
       if (consumed == 0) {
