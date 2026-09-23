@@ -211,6 +211,8 @@ rb_streaming_compress_flush(VALUE obj)
   VALUE drained = no_compress(sc, ZSTD_e_flush);
   VALUE out = rb_str_dup(sc->pending);
   rb_str_cat(out, RSTRING_PTR(drained), RSTRING_LEN(drained));
+  /* prevent `drained` from being freed by GC inside rb_str_cat */
+  RB_GC_GUARD(drained);
   rb_str_resize(sc->pending, 0);
   return out;
 }
@@ -223,6 +225,8 @@ rb_streaming_compress_finish(VALUE obj)
   VALUE drained = no_compress(sc, ZSTD_e_end);
   VALUE out = rb_str_dup(sc->pending);
   rb_str_cat(out, RSTRING_PTR(drained), RSTRING_LEN(drained));
+  /* prevent `drained` from being freed by GC inside rb_str_cat */
+  RB_GC_GUARD(drained);
   rb_str_resize(sc->pending, 0);
   return out;
 }
