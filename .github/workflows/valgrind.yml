@@ -1,0 +1,39 @@
+name: Valgrind
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  valgrind:
+    name: memcheck (ubuntu, ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby:
+          - '4.0'
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: Install Valgrind
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y valgrind
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - name: Run the spec suite under Valgrind memcheck
+      run: bundle exec rake spec:valgrind

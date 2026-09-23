@@ -34,7 +34,7 @@ RSpec.describe Zstd do
     end
 
     it 'should compress large bytes' do
-      large_string = Random.bytes(1<<17 + 15)
+      large_string = Random.bytes((1<<17) + 15)
       compressed = Zstd.compress(large_string)
       expect(Zstd.decompress(compressed)).to eq(large_string)
     end
