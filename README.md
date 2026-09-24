@@ -222,10 +222,20 @@ require 'zstd-ruby' # Add the appropriate require statement if necessary
 io = StringIO.new(compressed_data)
 reader = Zstd::StreamReader.new(io)
 
-# Read and output the decompressed data
-puts reader.read(10)  # 'abc'
-puts reader.read(10)  # 'def'
-puts reader.read(10)  # '' (end of data)
+# read(n) returns up to n decompressed bytes, or nil at the end of the stream.
+puts reader.read(10).inspect  # "abc"
+puts reader.read(10).inspect  # nil (end of data)
+```
+
+`eof?` reports whether the stream has been fully consumed:
+
+```ruby
+io = StringIO.new(compressed_data)
+reader = Zstd::StreamReader.new(io)
+
+reader.eof?        # => false
+reader.read(10)    # => "abc"
+reader.eof?        # => true
 ```
 
 
