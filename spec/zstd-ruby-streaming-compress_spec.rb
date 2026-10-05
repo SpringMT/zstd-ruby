@@ -129,6 +129,18 @@ RSpec.describe Zstd::StreamingCompress do
     end
   end
 
+  # initialize raises after creating the ZSTD_CCtx; the object's free callback
+  # has to own it by then. `rake spec:valgrind` catches a leak or a double free.
+  describe 'initialize raising after creating the compression context' do
+    it 'raises ArgumentError for an unknown keyword' do
+      expect { Zstd::StreamingCompress.new(unknown: 1) }.to raise_error(ArgumentError)
+    end
+
+    it 'raises ArgumentError for a dict: that is neither a CDict nor a String' do
+      expect { Zstd::StreamingCompress.new(dict: 123) }.to raise_error(ArgumentError)
+    end
+  end
+
   if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.0.0')
     describe 'Ractor' do
       it 'should be supported' do

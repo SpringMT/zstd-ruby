@@ -8,6 +8,39 @@ static VALUE zstdVersion(VALUE self)
   return INT2NUM(version);
 }
 
+struct compress_args {
+  ZSTD_CCtx* ctx;
+  VALUE input_value;
+  VALUE kwargs;
+};
+
+static VALUE compress_body(VALUE arg)
+{
+  struct compress_args* args = (struct compress_args*)arg;
+  set_compress_params(args->ctx, args->kwargs);
+
+  char* input_data = RSTRING_PTR(args->input_value);
+  size_t input_size = RSTRING_LEN(args->input_value);
+
+  size_t max_compressed_size = ZSTD_compressBound(input_size);
+  VALUE output = rb_str_new(NULL, max_compressed_size);
+  char* output_data = RSTRING_PTR(output);
+
+  size_t const ret = zstd_compress(args->ctx, output_data, max_compressed_size, input_data, input_size, false);
+  if (ZSTD_isError(ret)) {
+    rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
+  }
+  rb_str_resize(output, ret);
+
+  return output;
+}
+
+static VALUE compress_ensure(VALUE arg)
+{
+  ZSTD_freeCCtx(((struct compress_args*)arg)->ctx);
+  return Qnil;
+}
+
 static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
 {
   VALUE input_value;
@@ -21,22 +54,11 @@ static VALUE rb_compress(int argc, VALUE *argv, VALUE self)
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createCCtx error");
   }
 
-  set_compress_params(ctx, kwargs);
-
-  char* input_data = RSTRING_PTR(input_value);
-  size_t input_size = RSTRING_LEN(input_value);
-
-  size_t max_compressed_size = ZSTD_compressBound(input_size);
-  VALUE output = rb_str_new(NULL, max_compressed_size);
-  char* output_data = RSTRING_PTR(output);
-
-  size_t const ret = zstd_compress(ctx, output_data, max_compressed_size, input_data, input_size, false);
-  ZSTD_freeCCtx(ctx);
-  if (ZSTD_isError(ret)) {
-    rb_raise(rb_eRuntimeError, "compress error error code: %s", ZSTD_getErrorName(ret));
-  }
-  rb_str_resize(output, ret);
-
+  /* The body can raise -- a bad keyword, or an interrupt delivered when
+     zstd_compress reacquires the GVL -- so the context is freed under ensure. */
+  struct compress_args args = { ctx, input_value, kwargs };
+  VALUE output = rb_ensure(compress_body, (VALUE)&args, compress_ensure, (VALUE)&args);
+  RB_GC_GUARD(input_value);
   return output;
 }
 
@@ -196,7 +218,7 @@ static VALUE rb_cdict_initialize(int argc, VALUE *argv, VALUE self)
   VALUE dict;
   VALUE compression_level_value;
   rb_scan_args(argc, argv, "11", &dict, &compression_level_value);
-  int compression_level = convert_compression_level(NULL, compression_level_value);
+  int compression_level = convert_compression_level(compression_level_value);
 
   StringValue(dict);
   char* dict_buffer = RSTRING_PTR(dict);

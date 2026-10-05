@@ -10,15 +10,12 @@
 
 extern VALUE rb_cCDict, rb_cDDict;
 
-static int convert_compression_level(ZSTD_CCtx* ctx, VALUE compression_level_value)
+static int convert_compression_level(VALUE compression_level_value)
 {
   if (NIL_P(compression_level_value)) {
     return ZSTD_CLEVEL_DEFAULT;
   }
   if (!RB_INTEGER_TYPE_P(compression_level_value)) {
-      if (ctx) {
-          ZSTD_freeCCtx(ctx);
-      }
       rb_raise(rb_eTypeError, "compression level must be an Integer");
   }
   return NUM2INT(compression_level_value);
@@ -27,7 +24,8 @@ static int convert_compression_level(ZSTD_CCtx* ctx, VALUE compression_level_val
 /* Returns the Zstd::CDict given as `dict:`, or Qnil. ZSTD_CCtx_refCDict only
    borrows the pointer, so a caller that keeps the ZSTD_CCtx alive beyond this
    call has to keep the returned object reachable for just as long. A String
-   dictionary needs no such handling: ZSTD_CCtx_loadDictionary copies it. */
+   dictionary needs no such handling: ZSTD_CCtx_loadDictionary copies it.
+   Raises without freeing ctx: the caller owns it and has to release it. */
 static VALUE set_compress_params(ZSTD_CCtx* const ctx, VALUE kwargs)
 {
   ID kwargs_keys[2];
@@ -38,7 +36,7 @@ static VALUE set_compress_params(ZSTD_CCtx* const ctx, VALUE kwargs)
 
   int compression_level = ZSTD_CLEVEL_DEFAULT;
   if (kwargs_values[0] != Qundef && kwargs_values[0] != Qnil) {
-    compression_level = convert_compression_level(ctx, kwargs_values[0]);
+    compression_level = convert_compression_level(kwargs_values[0]);
   }
   ZSTD_CCtx_setParameter(ctx, ZSTD_c_compressionLevel, compression_level);
 
@@ -47,7 +45,6 @@ static VALUE set_compress_params(ZSTD_CCtx* const ctx, VALUE kwargs)
       ZSTD_CDict* cdict = DATA_PTR(kwargs_values[1]);
       size_t ref_dict_ret = ZSTD_CCtx_refCDict(ctx, cdict);
       if (ZSTD_isError(ref_dict_ret)) {
-        ZSTD_freeCCtx(ctx);
         rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_refCDict failed");
       }
       return kwargs_values[1];
@@ -56,11 +53,9 @@ static VALUE set_compress_params(ZSTD_CCtx* const ctx, VALUE kwargs)
       size_t dict_size = RSTRING_LEN(kwargs_values[1]);
       size_t load_dict_ret = ZSTD_CCtx_loadDictionary(ctx, dict_buffer, dict_size);
       if (ZSTD_isError(load_dict_ret)) {
-        ZSTD_freeCCtx(ctx);
         rb_raise(rb_eRuntimeError, "%s", "ZSTD_CCtx_loadDictionary failed");
       }
     } else {
-      ZSTD_freeCCtx(ctx);
       rb_raise(rb_eArgError, "`dict:` must be a Zstd::CDict or a String");
     }
   }

@@ -91,9 +91,9 @@ rb_streaming_compress_initialize(int argc, VALUE *argv, VALUE obj)
   if (ctx == NULL) {
     rb_raise(rb_eRuntimeError, "%s", "ZSTD_createCCtx error");
   }
-  VALUE dict = set_compress_params(ctx, kwargs);
-
+  /* Before set_compress_params, which can raise: the free callback owns it. */
   sc->ctx = ctx;
+  VALUE dict = set_compress_params(ctx, kwargs);
   RB_OBJ_WRITE(obj, &sc->dict, dict);
   RB_OBJ_WRITE(obj, &sc->buf, rb_str_new(NULL, buffOutSize));
   sc->buf_size = buffOutSize;

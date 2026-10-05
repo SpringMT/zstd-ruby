@@ -55,6 +55,33 @@ RSpec.describe Zstd do
       decompressed = Zstd.decompress(compressed)
       expect(decompressed).to eq('abc')
     end
+
+    # Each of these raises after the ZSTD_CCtx has been created. The assertions
+    # pin the behaviour; `rake spec:valgrind` is what catches a leaked context.
+    context 'when it raises after creating the compression context' do
+      it 'raises ArgumentError for an unknown keyword' do
+        expect { Zstd.compress('abc', unknown: 1) }.to raise_error(ArgumentError)
+      end
+
+      it 'raises RangeError for a level that does not fit in an int' do
+        expect { Zstd.compress('abc', level: 2**40) }.to raise_error(RangeError)
+      end
+
+      it 'raises ArgumentError for a dict: that is neither a CDict nor a String' do
+        expect { Zstd.compress('abc', dict: 123) }.to raise_error(ArgumentError)
+      end
+
+      it 'can be interrupted by Thread#raise while compressing' do
+        interrupt = Class.new(StandardError)
+        input = Random.new(42).bytes(16 * 1024 * 1024)
+        thread = Thread.new { Zstd.compress(input, level: 19) }
+        thread.report_on_exception = false
+        sleep 0.1
+        thread.raise(interrupt)
+
+        expect { thread.join }.to raise_error(interrupt)
+      end
+    end
   end
 
   describe 'decompress' do
