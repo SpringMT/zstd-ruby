@@ -57,4 +57,36 @@ RSpec.describe Zstd do
       end
     end
   end
+
+  describe 'write_skippable_frame' do
+    let(:payload) { SecureRandom.hex(150) }
+    let(:compressed_data) { Zstd.compress(payload) }
+
+    it 'returns the skippable frame followed by the input' do
+      result = Zstd.write_skippable_frame(compressed_data, "sample data")
+
+      expect(result.bytesize).to eq(8 + "sample data".bytesize + compressed_data.bytesize)
+      expect(result).to end_with(compressed_data)
+    end
+
+    it 'keeps the compressed data decodable by Zstd.decompress' do
+      result = Zstd.write_skippable_frame(compressed_data, "sample data")
+
+      expect(Zstd.decompress(result)).to eq payload
+    end
+
+    it 'keeps the compressed data with a magic_variant' do
+      result = Zstd.write_skippable_frame(compressed_data, "sample data", magic_variant: 15)
+
+      expect(Zstd.read_skippable_frame(result)).to eq "sample data"
+      expect(Zstd.decompress(result)).to eq payload
+    end
+
+    it 'accepts an empty input' do
+      result = Zstd.write_skippable_frame("", "sample data")
+
+      expect(result.bytesize).to eq(8 + "sample data".bytesize)
+      expect(Zstd.read_skippable_frame(result)).to eq "sample data"
+    end
+  end
 end

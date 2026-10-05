@@ -21,15 +21,20 @@ static VALUE rb_write_skippable_frame(int argc, VALUE *argv, VALUE self)
   char* skip_data = RSTRING_PTR(skip_value);
   size_t skip_size = RSTRING_LEN(skip_value);
 
-  size_t dst_size = input_size + ZSTD_SKIPPABLEHEADERSIZE + skip_size;
-  VALUE output = rb_str_new(NULL, dst_size);
+  /* The skippable frame goes first, followed by the input: read_skippable_frame
+     reads a frame at the start, and decompress skips it to reach the input. */
+  size_t frame_capacity = ZSTD_SKIPPABLEHEADERSIZE + skip_size;
+  VALUE output = rb_str_new(NULL, frame_capacity + input_size);
   char* output_data = RSTRING_PTR(output);
-  size_t output_size = ZSTD_writeSkippableFrame((void*)output_data, dst_size, (const void*)skip_data, skip_size, magic_variant);
-  if (ZSTD_isError(output_size)) {
-    rb_raise(rb_eRuntimeError, "%s: %s", "write skippable frame failed", ZSTD_getErrorName(output_size));
+  size_t frame_size = ZSTD_writeSkippableFrame((void*)output_data, frame_capacity, (const void*)skip_data, skip_size, magic_variant);
+  if (ZSTD_isError(frame_size)) {
+    rb_raise(rb_eRuntimeError, "%s: %s", "write skippable frame failed", ZSTD_getErrorName(frame_size));
   }
+  memcpy(output_data + frame_size, RSTRING_PTR(input_value), input_size);
 
-  rb_str_resize(output, output_size);
+  rb_str_resize(output, frame_size + input_size);
+  RB_GC_GUARD(input_value);
+  RB_GC_GUARD(skip_value);
   return output;
 }
 
