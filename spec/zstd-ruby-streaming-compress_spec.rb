@@ -129,6 +129,48 @@ RSpec.describe Zstd::StreamingCompress do
     end
   end
 
+  describe 'checksum' do
+    # Content_Checksum_flag: bit 2 of the frame header descriptor, the byte
+    # after the magic number.
+    def checksum_flag?(frame)
+      frame.getbyte(4) & 0x04 != 0
+    end
+
+    it 'is not written by default' do
+      stream = Zstd::StreamingCompress.new
+      stream << "abc" << "def"
+      res = stream.finish
+      expect(checksum_flag?(res)).to eq(false)
+      expect(Zstd.decompress(res)).to eq('abcdef')
+    end
+
+    it 'covers the content written across flushes' do
+      stream = Zstd::StreamingCompress.new(level: 5, checksum: true)
+      res = stream.compress("abc" * 50_000)
+      res << stream.flush
+      res << stream.compress("def" * 50_000)
+      res << stream.finish
+      expect(checksum_flag?(res)).to eq(true)
+      # Zstd.decompress verifies the checksum
+      expect(Zstd.decompress(res)).to eq(("abc" * 50_000) + ("def" * 50_000))
+    end
+
+    it 'works with a Zstd::CDict' do
+      dictionary = File.read("#{__dir__}/dictionary")
+      user_json = File.read("#{__dir__}/user_springmt.json")
+      stream = Zstd::StreamingCompress.new(dict: Zstd::CDict.new(dictionary, 5), checksum: true)
+      stream << user_json
+      res = stream.finish
+      expect(checksum_flag?(res)).to eq(true)
+      expect(Zstd.decompress(res, dict: dictionary)).to eq(user_json)
+    end
+
+    it 'raises ArgumentError unless true or false' do
+      expect { Zstd::StreamingCompress.new(checksum: 1) }.to raise_error(ArgumentError)
+      expect { Zstd::StreamingCompress.new(checksum: 'true') }.to raise_error(ArgumentError)
+    end
+  end
+
   if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.0.0')
     describe 'Ractor' do
       it 'should be supported' do

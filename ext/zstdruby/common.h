@@ -30,17 +30,29 @@ static int convert_compression_level(ZSTD_CCtx* ctx, VALUE compression_level_val
    dictionary needs no such handling: ZSTD_CCtx_loadDictionary copies it. */
 static VALUE set_compress_params(ZSTD_CCtx* const ctx, VALUE kwargs)
 {
-  ID kwargs_keys[2];
+  ID kwargs_keys[3];
   kwargs_keys[0] = rb_intern("level");
   kwargs_keys[1] = rb_intern("dict");
-  VALUE kwargs_values[2];
-  rb_get_kwargs(kwargs, kwargs_keys, 0, 2, kwargs_values);
+  kwargs_keys[2] = rb_intern("checksum");
+  VALUE kwargs_values[3];
+  rb_get_kwargs(kwargs, kwargs_keys, 0, 3, kwargs_values);
 
   int compression_level = ZSTD_CLEVEL_DEFAULT;
   if (kwargs_values[0] != Qundef && kwargs_values[0] != Qnil) {
     compression_level = convert_compression_level(ctx, kwargs_values[0]);
   }
   ZSTD_CCtx_setParameter(ctx, ZSTD_c_compressionLevel, compression_level);
+
+  /* `checksum: true` writes a checksum of the content at the end of each
+     frame, which decompression verifies. Set before `dict:`, whose CDict
+     branch returns early. */
+  if (kwargs_values[2] != Qundef && kwargs_values[2] != Qnil) {
+    if (kwargs_values[2] != Qtrue && kwargs_values[2] != Qfalse) {
+      ZSTD_freeCCtx(ctx);
+      rb_raise(rb_eArgError, "`checksum:` must be true or false");
+    }
+    ZSTD_CCtx_setParameter(ctx, ZSTD_c_checksumFlag, kwargs_values[2] == Qtrue);
+  }
 
   if (kwargs_values[1] != Qundef && kwargs_values[1] != Qnil) {
     if (CLASS_OF(kwargs_values[1]) == rb_cCDict) {

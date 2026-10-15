@@ -77,6 +77,22 @@ cdict = Zstd::CDict.new(File.read('dictionary_file'), 5)
 compressed_using_dict = Zstd.compress("", dict: cdict)
 ```
 
+#### Compression with Checksum
+
+```ruby
+compressed_data = Zstd.compress(data, checksum: true) # default checksum is false
+```
+
+`checksum: true` adds a checksum of the uncompressed data to the end of each frame, as the `zstd` command line tool does by default. Decompression verifies it and raises an error when the data does not match. `Zstd::StreamingCompress.new` accepts it too:
+
+```ruby
+stream = Zstd::StreamingCompress.new(checksum: true)
+stream << "abc" << "def"
+res = stream.finish
+```
+
+`Zstd::StreamingDecompress` verifies the checksum when it reaches the end of the frame, after it has returned the data of that frame.
+
 #### Streaming Compression
 ```ruby
 stream = Zstd::StreamingCompress.new

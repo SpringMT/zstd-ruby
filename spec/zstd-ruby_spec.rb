@@ -55,6 +55,67 @@ RSpec.describe Zstd do
       decompressed = Zstd.decompress(compressed)
       expect(decompressed).to eq('abc')
     end
+
+    context 'with checksum' do
+      # Content_Checksum_flag: bit 2 of the frame header descriptor, the byte
+      # after the magic number.
+      def checksum_flag?(frame)
+        frame.getbyte(4) & 0x04 != 0
+      end
+
+      # Flips a bit in the middle of the frame.
+      def corrupt(frame)
+        corrupted = frame.dup
+        middle = corrupted.bytesize / 2
+        corrupted.setbyte(middle, corrupted.getbyte(middle) ^ 1)
+        corrupted
+      end
+
+      it 'should not write a checksum by default' do
+        compressed = Zstd.compress(user_json)
+        expect(checksum_flag?(compressed)).to eq(false)
+        expect(Zstd.compress(user_json, checksum: false)).to eq(compressed)
+        expect(Zstd.compress(user_json, checksum: nil)).to eq(compressed)
+      end
+
+      it 'should add a checksum of the content to the end of the frame' do
+        compressed = Zstd.compress('abc', checksum: true)
+        expect(checksum_flag?(compressed)).to eq(true)
+        # The low 4 bytes of XXH64('abc'), 0x44BC2CF5AD770999, little endian,
+        # as the zstd command line tool writes them.
+        expect(compressed.byteslice(-4, 4)).to eq("\x99\x09\x77\xAD".b)
+        expect(Zstd.decompress(compressed)).to eq('abc')
+
+        compressed = Zstd.compress(user_json, level: 5, checksum: true)
+        expect(compressed.bytesize).to eq(Zstd.compress(user_json, level: 5).bytesize + 4)
+        expect(Zstd.decompress(compressed)).to eq(user_json)
+      end
+
+      it 'should add a checksum with a dictionary' do
+        dictionary = File.read("#{__dir__}/dictionary")
+        [dictionary, Zstd::CDict.new(dictionary)].each do |dict|
+          compressed = Zstd.compress(user_json, dict: dict, checksum: true)
+          expect(checksum_flag?(compressed)).to eq(true)
+          expect(Zstd.decompress(compressed, dict: dictionary)).to eq(user_json)
+        end
+      end
+
+      it 'should detect corrupted content on decompress' do
+        # Incompressible data is stored as is, so the flipped bit changes the
+        # content without breaking the frame: only the checksum can detect it.
+        data = Random.new(42).bytes(1000)
+        expect(Zstd.decompress(corrupt(Zstd.compress(data)))).not_to eq(data)
+
+        corrupted = corrupt(Zstd.compress(data, checksum: true))
+        expect { Zstd.decompress(corrupted) }.to raise_error(RuntimeError, /checksum/)
+        expect { Zstd::StreamingDecompress.new.decompress(corrupted) }.to raise_error(RuntimeError, /checksum/)
+      end
+
+      it 'should raise ArgumentError unless true or false' do
+        expect { Zstd.compress(user_json, checksum: 1) }.to raise_error(ArgumentError)
+        expect { Zstd.compress(user_json, checksum: 'true') }.to raise_error(ArgumentError)
+      end
+    end
   end
 
   describe 'decompress' do
