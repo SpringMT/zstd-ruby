@@ -17,6 +17,31 @@ RSpec.describe Zstd::StreamingDecompress do
     end
   end
 
+  describe 'streaming decompress of several frames' do
+    it 'decompresses every frame' do
+      input = Zstd.compress('Hello, ') + Zstd.compress('World!')
+      expect(Zstd::StreamingDecompress.new.decompress(input)).to eq('Hello, World!')
+    end
+
+    it 'decompresses the frames after an empty frame' do
+      input = Zstd.compress('') + Zstd.compress('Hello, ') + Zstd.compress('') + Zstd.compress('World!')
+      expect(Zstd::StreamingDecompress.new.decompress(input)).to eq('Hello, World!')
+    end
+
+    it 'decompresses the frames after a skippable frame' do
+      # pzstd writes a skippable frame before each frame.
+      skippable = [0x184D2A50, 4].pack('VV') + 'meta'
+      input = skippable + Zstd.compress('Hello, ') + skippable + Zstd.compress('World!')
+      expect(Zstd::StreamingDecompress.new.decompress(input)).to eq('Hello, World!')
+
+      # Split within the frame that follows the first skippable frame
+      stream = Zstd::StreamingDecompress.new
+      result = stream.decompress(input.byteslice(0, 15))
+      result << stream.decompress(input.byteslice(15..-1))
+      expect(result).to eq('Hello, World!')
+    end
+  end
+
   describe 'decompress_with_pos' do
     it 'should return decompressed data and consumed input position' do
       str = "hello world test data"

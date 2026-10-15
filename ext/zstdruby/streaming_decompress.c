@@ -119,9 +119,8 @@ rb_streaming_decompress_decompress(VALUE obj, VALUE src)
     if (output.pos > 0) {
         rb_str_cat(result, output.dst, output.pos);
     }
-    if (ret == 0 && output.pos == 0) {
-        break;
-    }
+    /* Carry on after the end of a frame, even one without output such as an
+       empty or skippable frame: the rest of the input can hold more frames. */
   }
   return result;
 }
