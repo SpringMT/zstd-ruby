@@ -5,6 +5,7 @@ struct streaming_decompress_t {
   VALUE buf;
   size_t buf_size;
   VALUE dict;      /* Zstd::DDict the dctx borrows a pointer into, or Qnil */
+  bool frame_complete; /* the input decompressed so far ends at the end of a frame */
 };
 
 static void
@@ -69,6 +70,7 @@ rb_streaming_decompress_allocate(VALUE klass)
   RB_OBJ_WRITE(obj, &sd->buf, Qnil);
   sd->buf_size = 0;
   RB_OBJ_WRITE(obj, &sd->dict, Qnil);
+  sd->frame_complete = true;
   return obj;
 }
 
@@ -96,6 +98,20 @@ rb_streaming_decompress_initialize(int argc, VALUE *argv, VALUE obj)
   return obj;
 }
 
+/* ZSTD_decompressStream returns 0 once a frame is decoded and flushed, and
+   otherwise how much more input the frame needs. A call that consumes no input
+   and produces no output says nothing about the input so far: after a complete
+   frame, it asks for the header of the next one. */
+static void
+update_frame_complete(struct streaming_decompress_t* sd, size_t ret, bool progress)
+{
+  if (ZSTD_isError(ret)) {
+    sd->frame_complete = false;
+  } else if (progress) {
+    sd->frame_complete = ret == 0;
+  }
+}
+
 static VALUE
 rb_streaming_decompress_decompress(VALUE obj, VALUE src)
 {
@@ -111,7 +127,9 @@ rb_streaming_decompress_decompress(VALUE obj, VALUE src)
   while (input.pos < input.size) {
     const char* output_data = RSTRING_PTR(sd->buf);
     ZSTD_outBuffer output = { (void*)output_data, sd->buf_size, 0 };
+    size_t const input_pos = input.pos;
     size_t const ret = zstd_stream_decompress(sd->dctx, &output, &input, false);
+    update_frame_complete(sd, ret, input.pos > input_pos || output.pos > 0);
 
     if (ZSTD_isError(ret)) {
       rb_raise(rb_eRuntimeError, "decompress error error code: %s", ZSTD_getErrorName(ret));
@@ -140,11 +158,22 @@ rb_streaming_decompress_decompress_with_pos(VALUE obj, VALUE src)
   VALUE result = rb_str_new(0, 0);
   ZSTD_outBuffer output = { (void*)output_data, sd->buf_size, 0 };
   size_t const ret = zstd_stream_decompress(sd->dctx, &output, &input, false);
+  update_frame_complete(sd, ret, input.pos > 0 || output.pos > 0);
   if (ZSTD_isError(ret)) {
     rb_raise(rb_eRuntimeError, "decompress error error code: %s", ZSTD_getErrorName(ret));
   }
   rb_str_cat(result, output.dst, output.pos);
   return rb_ary_new_from_args(2, result, ULONG2NUM(input.pos));
+}
+
+/* Whether the input decompressed so far ends at the end of a frame: true before
+   any input, false while it ends within a frame, or after a call raised. */
+static VALUE
+rb_streaming_decompress_frame_complete_p(VALUE obj)
+{
+  struct streaming_decompress_t* sd;
+  TypedData_Get_Struct(obj, struct streaming_decompress_t, &streaming_decompress_type, sd);
+  return sd->frame_complete ? Qtrue : Qfalse;
 }
 
 extern VALUE rb_mZstd, cStreamingDecompress;
@@ -156,4 +185,5 @@ zstd_ruby_streaming_decompress_init(void)
   rb_define_method(cStreamingDecompress, "initialize", rb_streaming_decompress_initialize, -1);
   rb_define_method(cStreamingDecompress, "decompress", rb_streaming_decompress_decompress, 1);
   rb_define_method(cStreamingDecompress, "decompress_with_pos", rb_streaming_decompress_decompress_with_pos, 1);
+  rb_define_method(cStreamingDecompress, "frame_complete?", rb_streaming_decompress_frame_complete_p, 0);
 }

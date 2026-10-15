@@ -180,6 +180,130 @@ RSpec.describe Zstd::StreamingDecompress do
     end
   end
 
+  describe 'frame_complete?' do
+    # Written by the zstd command line tool, which adds a checksum of the
+    # content to the end of each frame by default:
+    #   ruby -e 'print "foo bar buzz " * 10' | zstd -c
+    # The magic number (4 bytes), frame header (2), block header (3),
+    # compressed block (20) and content checksum (4).
+    let(:frame) { ['28b52ffd0458a5000068666f6f206261722062757a7a20010012d2f905b7745bfe'].pack('H*') }
+    let(:content) { 'foo bar buzz ' * 10 }
+
+    it 'is true before any input' do
+      stream = Zstd::StreamingDecompress.new
+      expect(stream.frame_complete?).to eq(true)
+      expect(stream.decompress('')).to eq('')
+      expect(stream.decompress_with_pos('')).to eq(['', 0])
+      expect(stream.frame_complete?).to eq(true)
+    end
+
+    it 'is true when the input ends at the end of a frame' do
+      stream = Zstd::StreamingDecompress.new
+      expect(stream.decompress(frame)).to eq(content)
+      expect(stream.frame_complete?).to eq(true)
+    end
+
+    {
+      'within the magic number' => 2,
+      'within the frame header' => 5,
+      'within a block header' => 7,
+      'within a block' => 15,
+      'right before the checksum' => 29,
+      'within the checksum' => 31
+    }.each do |where, length|
+      it "is false when the input ends #{where}" do
+        stream = Zstd::StreamingDecompress.new
+        result = stream.decompress(frame.byteslice(0, length))
+        expect(stream.frame_complete?).to eq(false)
+
+        result << stream.decompress(frame.byteslice(length..-1))
+        expect(result).to eq(content)
+        expect(stream.frame_complete?).to eq(true)
+      end
+    end
+
+    it 'is false when the input ends between two blocks' do
+      compress = Zstd::StreamingCompress.new
+      # flush ends a block, so that all the data so far can be decompressed
+      head = compress.compress('abc' * 1000) + compress.flush
+      tail = compress.compress('def') + compress.finish
+
+      stream = Zstd::StreamingDecompress.new
+      expect(stream.decompress(head)).to eq('abc' * 1000)
+      expect(stream.frame_complete?).to eq(false)
+      expect(stream.decompress(tail)).to eq('def')
+      expect(stream.frame_complete?).to eq(true)
+    end
+
+    it 'is true only at the end of each of several frames' do
+      skippable = [0x184D2A50, 8].pack('VV') + 'metadata'
+      frames = [Zstd.compress('Hello, '), frame, skippable, Zstd.compress(''), Zstd.compress('World!')]
+      input = frames.join
+      ends = frames.each_with_object([]) { |f, sums| sums << (sums.last || 0) + f.bytesize }
+
+      # One byte at a time, so that the input ends at every position.
+      stream = Zstd::StreamingDecompress.new
+      stream_with_pos = Zstd::StreamingDecompress.new
+      result = ''
+      input.bytesize.times do |pos|
+        byte = input.byteslice(pos, 1)
+        result << stream.decompress(byte)
+        expect(stream_with_pos.decompress_with_pos(byte)[1]).to eq(1)
+
+        expected = ends.include?(pos + 1)
+        expect(stream.frame_complete?).to eq(expected), "decompress after #{pos + 1} bytes"
+        expect(stream_with_pos.frame_complete?).to eq(expected), "decompress_with_pos after #{pos + 1} bytes"
+      end
+      expect(result).to eq('Hello, ' + content + 'World!')
+    end
+
+    it 'is false when the input ends within a later frame' do
+      last = Zstd.compress('World!')
+      input = Zstd.compress('Hello, ') + frame + last
+
+      stream = Zstd::StreamingDecompress.new
+      # 5 bytes into the last frame: its magic number and frame header descriptor
+      expect(stream.decompress(input.byteslice(0, input.bytesize - last.bytesize + 5))).to eq('Hello, ' + content)
+      expect(stream.frame_complete?).to eq(false)
+
+      stream = Zstd::StreamingDecompress.new
+      expect(stream.decompress(input)).to eq('Hello, ' + content + 'World!')
+      expect(stream.frame_complete?).to eq(true)
+    end
+
+    it 'stays true after calls with empty input' do
+      stream = Zstd::StreamingDecompress.new
+      stream.decompress(frame)
+      3.times do
+        expect(stream.decompress('')).to eq('')
+        expect(stream.decompress_with_pos('')).to eq(['', 0])
+        expect(stream.frame_complete?).to eq(true)
+      end
+    end
+
+    it 'is false until decompress_with_pos has returned all the output of a frame' do
+      # decompress_with_pos returns at most ZSTD_DStreamOutSize (128 KiB) per call.
+      data = 'a' * 1_000_000
+      input = Zstd.compress(data)
+      stream = Zstd::StreamingDecompress.new
+      result = ''
+      until input.empty?
+        output, consumed = stream.decompress_with_pos(input)
+        result << output
+        input = input.byteslice(consumed..-1)
+        expect(stream.frame_complete?).to eq(result.bytesize == data.bytesize)
+      end
+      expect(result).to eq(data)
+    end
+
+    it 'is false after the input fails to decompress' do
+      stream = Zstd::StreamingDecompress.new
+      stream.decompress(frame)
+      expect { stream.decompress('not zstd') }.to raise_error(RuntimeError)
+      expect(stream.frame_complete?).to eq(false)
+    end
+  end
+
   if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.0.0')
     describe 'Ractor' do
       it 'should be supported' do

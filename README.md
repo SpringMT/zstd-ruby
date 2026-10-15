@@ -181,6 +181,24 @@ result, consumed_bytes = stream.decompress_with_pos(cstr[0, 10])
 
 This is particularly useful when processing streaming data where you need to track the exact position in the input stream.
 
+#### Detecting a Truncated Stream
+
+`frame_complete?` returns `true` when the input decompressed so far ends exactly at the end of a frame, and `false` when it ends within a frame. Once all of the input has been decompressed, `false` means that it was cut short:
+
+```ruby
+stream = Zstd::StreamingDecompress.new
+File.open('data.zst', 'rb') do |input|
+  File.open('data', 'wb') do |output|
+    while (chunk = input.read(65_536))
+      output << stream.decompress(chunk)
+    end
+  end
+end
+raise 'data.zst is truncated' unless stream.frame_complete?
+```
+
+It is `true` before any input, and a call with an empty String does not change it. With `decompress_with_pos`, only the input it reports as consumed counts.
+
 ### Skippable frame
 
 ```ruby
